@@ -1,0 +1,1025 @@
+/* ============================================================
+   VERIFICATION SUITE — season.css
+   Seasonal background layer. ADD-ON ONLY.
+
+   This file never restyles the layout, the form controls or the
+   portal. It paints a scene *behind* the existing sign-in screen
+   and adds a light seasonal ambience to the portal.
+
+   1.  Animatable custom properties (@property)
+   2.  SEASON PALETTES        <- season configuration lives here
+   3.  TIME-OF-DAY PALETTES   <- time-of-day configuration lives here
+   4.  Season x time refinements
+   5.  Scene layers (sky, stars, sun/moon, land, trees)
+   5b. Scene life (clouds, birds, balloon, butterflies, gusts,
+       fireflies, shooting star, treeline, ground dressing)
+   6.  Falling particles (leaves / petals / snow)
+   7.  Season picker
+   8.  Sign-in surface polish (frosted card)
+   9.  Portal ambience (leaves + snow only, no scenery)
+   10. Responsive, reduced motion, print
+   ============================================================ */
+
+
+/* ---------- 1. Animatable custom properties ----------------
+   Registering these lets the browser interpolate the gradients
+   when the time of day rolls over, so afternoon -> sunset ->
+   night is a slow fade instead of a jump. Browsers without
+   @property simply switch instantly; nothing breaks.
+   ---------------------------------------------------------- */
+@property --sn-sky-1   { syntax:'<color>'; inherits:true; initial-value:#4E90D4; }
+@property --sn-sky-2   { syntax:'<color>'; inherits:true; initial-value:#86BCE6; }
+@property --sn-sky-3   { syntax:'<color>'; inherits:true; initial-value:#DCEDF7; }
+@property --sn-orb     { syntax:'<color>'; inherits:true; initial-value:#FFFBE8; }
+@property --sn-orb-hal { syntax:'<color>'; inherits:true; initial-value:rgba(255,246,200,.55); }
+@property --sn-bloom   { syntax:'<color>'; inherits:true; initial-value:rgba(255,238,190,.30); }
+@property --sn-dim     { syntax:'<number>'; inherits:true; initial-value:0; }
+@property --sn-star    { syntax:'<number>'; inherits:true; initial-value:0; }
+@property --sn-bright  { syntax:'<number>'; inherits:true; initial-value:1; }
+@property --sn-orb-x   { syntax:'<percentage>'; inherits:true; initial-value:50%; }
+@property --sn-orb-y   { syntax:'<percentage>'; inherits:true; initial-value:16%; }
+@property --sn-cloud       { syntax:'<color>'; inherits:true; initial-value:#FFFFFF; }
+@property --sn-cloud-shade { syntax:'<color>'; inherits:true; initial-value:#D4E3EF; }
+@property --sn-cloud-op    { syntax:'<number>'; inherits:true; initial-value:1; }
+
+/* the fade used whenever the season or the hour changes */
+html{
+  transition:
+    --sn-sky-1 1.4s linear, --sn-sky-2 1.4s linear, --sn-sky-3 1.4s linear,
+    --sn-orb 1.4s linear, --sn-orb-hal 1.4s linear, --sn-bloom 1.4s linear,
+    --sn-dim 1.4s linear, --sn-star 1.4s linear, --sn-bright 1.4s linear,
+    --sn-orb-x 2.2s var(--ease, ease), --sn-orb-y 2.2s var(--ease, ease),
+    --sn-cloud 1.4s linear, --sn-cloud-shade 1.4s linear, --sn-cloud-op 1.4s linear;
+}
+
+
+/* ============================================================
+   2. SEASON PALETTES
+   Everything that makes a season a season is in this block:
+   foliage, bark, hills, ground, accent colour and the tint the
+   season lays over the sky. Edit here to retune a season.
+   ============================================================ */
+
+/* SPRING — fresh light green, pink blossom, soft air */
+html[data-season="spring"]{
+  --sn-leaf-1:#F4A9C4;  --sn-leaf-2:#FCD3E2;  --sn-leaf-3:#E58BAE;   /* blossom canopy */
+  --sn-petal-1:#F3B9CE; --sn-petal-2:#FFE3EE;
+  --sn-bark-1:#6E5946;  --sn-bark-2:#8A705A;
+  --sn-hill-1:#A9CF87;  --sn-hill-2:#87BC76;
+  --sn-turf-1:#93C87F;  --sn-turf-2:#5C9459;
+  --sn-tint:rgba(255,206,226,.30);
+  --sn-canopy:.96;
+  --sn-accent:#2E8F66;   /* sign-in accent */
+  --sn-accent-lit:#63C79B;
+}
+
+/* SUMMER — dense saturated green, hard bright light */
+html[data-season="summer"]{
+  --sn-leaf-1:#3E9457;  --sn-leaf-2:#57AF5C;  --sn-leaf-3:#2C7644;
+  --sn-petal-1:#5FB265; --sn-petal-2:#8CCB7E;
+  --sn-bark-1:#5C4A3A;  --sn-bark-2:#75604C;
+  --sn-hill-1:#6DAE63;  --sn-hill-2:#4C8D4F;
+  --sn-turf-1:#6BAF5E;  --sn-turf-2:#3B7A44;
+  --sn-tint:rgba(255,238,176,.24);
+  --sn-canopy:1;
+  --sn-accent:#12808A;
+  --sn-accent-lit:#5CC9D4;
+}
+
+/* AUTUMN — amber, rust, gold; the warmest of the four */
+html[data-season="autumn"]{
+  --sn-leaf-1:#D9822B;  --sn-leaf-2:#E9B44C;  --sn-leaf-3:#BE4A2E;
+  --sn-petal-1:#D9822B; --sn-petal-2:#E9B44C;
+  --sn-bark-1:#5A4433;  --sn-bark-2:#725945;
+  --sn-hill-1:#B58C4F;  --sn-hill-2:#8E6A3C;
+  --sn-turf-1:#B2924F;  --sn-turf-2:#75592F;
+  --sn-tint:rgba(255,171,84,.30);
+  --sn-canopy:.94;
+  --sn-accent:#B4602A;
+  --sn-accent-lit:#E9A55E;
+}
+
+/* WINTER — cold blue-grey, thin canopy, snow on the ground */
+html[data-season="winter"]{
+  --sn-leaf-1:#9FB4C4;  --sn-leaf-2:#C6D7E3;  --sn-leaf-3:#8296A6;
+  --sn-petal-1:#FFFFFF; --sn-petal-2:#E4F0F8;
+  --sn-bark-1:#4B4A50;  --sn-bark-2:#63626A;
+  --sn-hill-1:#DCE7F0;  --sn-hill-2:#BFCFDD;
+  --sn-turf-1:#EEF5FA;  --sn-turf-2:#C2D3E1;
+  --sn-tint:rgba(188,218,244,.32);
+  --sn-canopy:.32;       /* branches mostly bare */
+  --sn-accent:#3D7EA6;
+  --sn-accent-lit:#7FBEE0;
+}
+
+
+/* ============================================================
+   3. TIME-OF-DAY PALETTES
+   The hour sets the sky, the sun/moon and the overall light.
+   It never touches the season variables above, so any season
+   can be paired with any hour.
+   ============================================================ */
+
+/* 05:00–07:59 */
+html[data-time="sunrise"]{
+  --sn-sky-1:#6E9AC9; --sn-sky-2:#F5BE93; --sn-sky-3:#FFE6C2;
+  --sn-orb:#FFD79B;   --sn-orb-hal:rgba(255,196,130,.55);
+  --sn-bloom:rgba(255,190,132,.40);
+  --sn-orb-x:57%; --sn-orb-y:46%; --sn-orb-size:98px;
+  --sn-dim:.14; --sn-star:0; --sn-bright:.94;
+}
+/* 08:00–11:59 */
+html[data-time="morning"]{
+  --sn-sky-1:#5F9BD8; --sn-sky-2:#A7CFEC; --sn-sky-3:#E7F2FA;
+  --sn-orb:#FFF6D2;   --sn-orb-hal:rgba(255,247,206,.50);
+  --sn-bloom:rgba(255,250,214,.24);
+  --sn-orb-x:61%; --sn-orb-y:17%; --sn-orb-size:80px;
+  --sn-dim:.02; --sn-star:0; --sn-bright:1;
+}
+/* 12:00–16:59 */
+html[data-time="afternoon"]{
+  --sn-sky-1:#3E86CE; --sn-sky-2:#87BEE7; --sn-sky-3:#DDEEF8;
+  --sn-orb:#FFFDF0;   --sn-orb-hal:rgba(255,252,225,.44);
+  --sn-bloom:rgba(255,253,230,.18);
+  --sn-orb-x:50%; --sn-orb-y:12%; --sn-orb-size:74px;
+  --sn-dim:0; --sn-star:0; --sn-bright:1.02;
+}
+/* 17:00–19:59 */
+html[data-time="evening"]{
+  --sn-sky-1:#3F4E85; --sn-sky-2:#E08256; --sn-sky-3:#FFC58C;
+  --sn-orb:#FF9E5C;   --sn-orb-hal:rgba(255,142,80,.52);
+  --sn-bloom:rgba(255,150,86,.42);
+  --sn-orb-x:44%; --sn-orb-y:48%; --sn-orb-size:104px;
+  --sn-dim:.22; --sn-star:.15; --sn-bright:.88;
+}
+/* 20:00–04:59 */
+html[data-time="night"]{
+  --sn-sky-1:#060B18; --sn-sky-2:#101E36; --sn-sky-3:#22334F;
+  --sn-orb:#EDF2FA;   --sn-orb-hal:rgba(206,224,255,.30);
+  --sn-bloom:rgba(120,160,220,.16);
+  --sn-orb-x:58%; --sn-orb-y:13%; --sn-orb-size:66px;
+  --sn-dim:.60; --sn-star:1; --sn-bright:.55;
+}
+
+
+/* ---------- 4. Season x time refinements -------------------
+   A few pairs need a nudge so the mood reads correctly.
+   ---------------------------------------------------------- */
+html[data-season="winter"][data-time="afternoon"]{ --sn-sky-1:#5E9AD2; --sn-sky-2:#A8CDE6; --sn-sky-3:#E8F2F8; }
+html[data-season="winter"][data-time="night"]{     --sn-sky-1:#050A16; --sn-sky-2:#0D1A31; --sn-sky-3:#2A3D58; --sn-dim:.50; }
+html[data-season="autumn"][data-time="evening"]{   --sn-sky-2:#D96F3E; --sn-sky-3:#FFB25F; --sn-bloom:rgba(255,132,58,.48); }
+html[data-season="autumn"][data-time="night"]{     --sn-dim:.52; }
+html[data-season="summer"][data-time="afternoon"]{ --sn-sky-1:#2E7FCE; --sn-sky-2:#7ABDEA; }
+html[data-season="spring"][data-time="sunrise"]{   --sn-sky-2:#FBC6B4; --sn-sky-3:#FFE9DC; --sn-dim:.08; }
+
+
+/* ---------- 4b. Scene life palettes ------------------------
+   Distant pines and bird silhouettes follow the season;
+   cloud light follows the hour.
+   ---------------------------------------------------------- */
+html[data-season="spring"]{ --sn-pine:#4F8F63; --sn-bird:#2E3A44; }
+html[data-season="summer"]{ --sn-pine:#2F6F46; --sn-bird:#28323C; }
+html[data-season="autumn"]{ --sn-pine:#4E6B45; --sn-bird:#2F2A26; }
+html[data-season="winter"]{ --sn-pine:#3F5E5A; --sn-bird:#1F2530; }
+
+html[data-time="sunrise"]  { --sn-cloud:#FFF0E2; --sn-cloud-shade:#F0B49C; --sn-cloud-op:1; }
+html[data-time="morning"]  { --sn-cloud:#FFFFFF; --sn-cloud-shade:#D6E5F1; --sn-cloud-op:1; }
+html[data-time="afternoon"]{ --sn-cloud:#FFFFFF; --sn-cloud-shade:#D0E1EE; --sn-cloud-op:1; }
+html[data-time="evening"]  { --sn-cloud:#FFD6BD; --sn-cloud-shade:#B06F86; --sn-cloud-op:.95; }
+html[data-time="night"]    { --sn-cloud:#34425E; --sn-cloud-shade:#1B253A; --sn-cloud-op:.6; }
+
+
+/* ============================================================
+   5. Scene layers
+   The scene is injected into .auth__panel by season.js and sits
+   behind .slip (which already carries z-index:1).
+   ============================================================ */
+
+/* the whole sign-in screen becomes the window onto the scene:
+   both columns go transparent and float above it */
+html[data-sn-screen="login"] .auth{
+  position:relative;
+  overflow:hidden;
+}
+html[data-sn-screen="login"] .auth__brand,
+html[data-sn-screen="login"] .auth__panel{
+  position:relative;
+  z-index:1;
+  background:transparent;
+}
+/* the slab's ledger texture and margin rule belonged to a solid
+   panel; they move onto the glass card in section 8 instead */
+html[data-sn-screen="login"] .auth__brand::before,
+html[data-sn-screen="login"] .auth__brand::after,
+html[data-sn-screen="login"] .auth__panel::before{ display:none; }
+
+.sn-scene{
+  position:absolute;
+  inset:0;
+  grid-area:1 / 1;          /* stays out of the sign-in grid flow */
+  z-index:0;
+  overflow:hidden;
+  pointer-events:none;
+  contain:strict;
+}
+
+/* --- sky --- */
+.sn-sky{
+  position:absolute; inset:0;
+  background:linear-gradient(to bottom,
+    var(--sn-sky-1) 0%, var(--sn-sky-2) 54%, var(--sn-sky-3) 100%);
+}
+/* the season's own colour cast over the sky */
+.sn-sky::after{
+  content:"";
+  position:absolute; inset:0;
+  background:radial-gradient(120% 80% at 50% 88%, var(--sn-tint) 0%, transparent 70%);
+}
+
+/* --- stars (night only) --- */
+.sn-stars{
+  position:absolute; inset:0 0 30% 0;
+  opacity:var(--sn-star);
+  background-image:
+    radial-gradient(1.4px 1.4px at 12% 18%, #fff, transparent),
+    radial-gradient(1.2px 1.2px at 28% 42%, #fff, transparent),
+    radial-gradient(1.6px 1.6px at 41% 12%, #fff, transparent),
+    radial-gradient(1px 1px   at 55% 34%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 68% 20%, #fff, transparent),
+    radial-gradient(1.1px 1.1px at 82% 46%, #fff, transparent),
+    radial-gradient(1.3px 1.3px at 91% 14%, #fff, transparent),
+    radial-gradient(1px 1px   at 34% 62%, #fff, transparent),
+    radial-gradient(1.2px 1.2px at 74% 66%, #fff, transparent),
+    radial-gradient(1px 1px   at 6% 52%, #fff, transparent);
+  animation:sn-twinkle 7s ease-in-out infinite alternate;
+}
+@keyframes sn-twinkle{ from{ filter:brightness(.7); } to{ filter:brightness(1.25); } }
+
+/* --- sun / moon --- */
+.sn-orb{
+  position:absolute;
+  left:var(--sn-orb-x);
+  top:var(--sn-orb-y);
+  width:var(--sn-orb-size, 76px);
+  aspect-ratio:1;
+  margin:calc(var(--sn-orb-size, 76px) / -2);
+  border-radius:50%;
+  background:radial-gradient(circle at 40% 36%, #fff 0%, var(--sn-orb) 58%, var(--sn-orb) 100%);
+  box-shadow:
+    0 0 0 14px color-mix(in srgb, var(--sn-orb-hal) 42%, transparent),
+    0 0 60px 30px var(--sn-orb-hal),
+    0 0 160px 80px color-mix(in srgb, var(--sn-orb-hal) 45%, transparent);
+}
+/* two soft craters turn the disc into a moon after dark */
+.sn-orb::after{
+  content:"";
+  position:absolute; inset:0;
+  border-radius:50%;
+  opacity:var(--sn-star);
+  background:
+    radial-gradient(circle at 62% 38%, rgba(150,170,200,.30) 0 16%, transparent 17%),
+    radial-gradient(circle at 40% 64%, rgba(150,170,200,.24) 0 11%, transparent 12%),
+    radial-gradient(circle at 30% 32%, rgba(150,170,200,.18) 0 8%, transparent 9%);
+}
+
+/* horizon bloom, sits behind the land */
+.sn-bloom{
+  position:absolute; left:0; right:0; bottom:14%;
+  height:46%;
+  background:radial-gradient(60% 100% at var(--sn-orb-x) 100%, var(--sn-bloom) 0%, transparent 72%);
+}
+
+/* --- land: hills, ground, trees, and the light veil over them --- */
+.sn-land{ position:absolute; inset:0; }
+.sn-land::after{                 /* darkens foliage + ground by hour */
+  content:"";
+  position:absolute; inset:0;
+  background:#07101F;
+  opacity:var(--sn-dim);
+  pointer-events:none;
+}
+
+.sn-hills{
+  position:absolute; left:-10%; right:-10%; bottom:9%;
+  height:34%;
+  background:
+    radial-gradient(58% 150% at 22% 100%, var(--sn-hill-1) 0 64%, transparent 65%),
+    radial-gradient(70% 130% at 84% 100%, var(--sn-hill-2) 0 60%, transparent 61%);
+  filter:blur(1px);
+  opacity:.82;
+}
+
+.sn-ground{
+  position:absolute; left:0; right:0; bottom:0;
+  height:15%;
+  background:linear-gradient(to bottom, var(--sn-turf-1) 0%, var(--sn-turf-2) 100%);
+}
+.sn-ground::before{              /* soft grass edge */
+  content:"";
+  position:absolute; left:0; right:0; top:-10px;
+  height:22px;
+  background:linear-gradient(to bottom, transparent, var(--sn-turf-1));
+  filter:blur(4px);
+}
+.sn-ground::after{               /* faint blades, static */
+  content:"";
+  position:absolute; inset:0;
+  background:repeating-linear-gradient(96deg,
+    rgba(255,255,255,.035) 0 2px, transparent 2px 11px);
+}
+
+/* snow blanket — winter only */
+.sn-snow-bed{
+  position:absolute; left:0; right:0; bottom:0;
+  height:19%;
+  opacity:0;
+  background:linear-gradient(to bottom, #FFFFFF 0%, #E3EDF6 42%, #C4D5E3 100%);
+  border-radius:44% 56% 0 0 / 22px 22px 0 0;
+  transition:opacity .9s var(--ease, ease);
+}
+html[data-season="winter"] .sn-snow-bed{ opacity:1; }
+
+/* --- trees --- */
+.sn-tree{
+  position:absolute;
+  bottom:4%;
+  height:86%;
+  width:auto;
+  max-width:none;
+}
+.sn-tree--l{ left:-5%;  transform-origin:22% 100%; }
+.sn-tree--r{ right:-3%; transform-origin:78% 100%; height:80%; opacity:.95; }
+
+.sn-trunk{ fill:var(--sn-bark-1); }
+.sn-limb{  stroke:var(--sn-bark-2); fill:none; stroke-linecap:round; }
+
+.sn-canopy{
+  opacity:var(--sn-canopy);
+  filter:blur(1.1px);
+  transition:opacity 1s var(--ease, ease);
+  transform-origin:34% 96%;
+  will-change:transform;
+  animation:sn-sway 11s ease-in-out infinite alternate;
+}
+.sn-tree--r .sn-canopy{ animation-duration:14s; animation-delay:-4s; transform-origin:66% 96%; }
+@keyframes sn-sway{
+  from{ transform:rotate(-.55deg) translateX(-2px); }
+  to  { transform:rotate(.55deg)  translateX(2px); }
+}
+
+/* snow resting on the branches — winter only */
+.sn-snow-caps{ opacity:0; fill:#FFFFFF; transition:opacity 1s var(--ease, ease); }
+html[data-season="winter"] .sn-snow-caps{ opacity:.85; }
+
+/* ============================================================
+   5b. Scene life
+   Clouds, birds, a balloon, butterflies, wind gusts, fireflies,
+   a shooting star, a distant treeline and ground dressing.
+   All of it is inside .sn-scene (z-index 0), so it always
+   passes BEHIND the brand panel and the sign-in slip, never
+   over their text. --sn-w (scene width in px) is set by
+   season.js so travellers can leave one edge and re-enter
+   from the other.
+   ============================================================ */
+
+/* shared travel: left -> right, just off-screen at both ends */
+@keyframes sn-cross{
+  from{ transform:translate3d(calc(-1 * var(--c-w) - 30px), 0, 0); }
+  to  { transform:translate3d(calc(var(--sn-w, 100vw) + 30px), 0, 0); }
+}
+/* same, but with a long off-screen stretch so they come back only now and then */
+@keyframes sn-cross-gap{
+  from{ transform:translate3d(calc(-1 * var(--c-w) - 30px), 0, 0); }
+  to  { transform:translate3d(calc(var(--sn-w, 100vw) * 1.7), 0, 0); }
+}
+@keyframes sn-cross-gap-l{
+  from{ transform:translate3d(calc(var(--sn-w, 100vw) * 1.7), 0, 0); }
+  to  { transform:translate3d(calc(-1 * var(--c-w) - 30px), 0, 0); }
+}
+
+.sn-clouds, .sn-air, .sn-near{
+  position:absolute; inset:0;
+  overflow:hidden;
+  pointer-events:none;
+}
+.sn-air, .sn-near{ filter:brightness(var(--sn-bright)); }
+
+/* --- clouds --- */
+.sn-clouds{ opacity:var(--sn-cloud-op); }
+.sn-cloud{
+  position:absolute; left:0;
+  top:var(--c-top);
+  width:var(--c-w);
+  opacity:var(--c-op);
+  will-change:transform;
+  animation:sn-cross var(--c-dur) linear var(--c-delay) infinite;
+}
+.sn-cloud svg{ display:block; width:100%; height:auto; overflow:visible; }
+.sn-cloud__body { fill:var(--sn-cloud); }
+.sn-cloud__shade{ fill:var(--sn-cloud-shade); opacity:.55; }
+html[data-season="winter"] .sn-clouds{ filter:saturate(.45) brightness(.97); }
+html[data-season="summer"] .sn-cloud{ filter:drop-shadow(0 6px 10px rgba(40,90,150,.10)); }
+
+/* --- birds / geese --- */
+.sn-flock{
+  position:absolute; left:0;
+  top:var(--c-top);
+  width:var(--c-w); height:60px;
+  animation:sn-cross-gap var(--c-dur) linear var(--c-delay) infinite;
+  transition:opacity 1.2s var(--ease, ease);
+}
+.sn-flock--l{ animation-name:sn-cross-gap-l; }
+.sn-flock__bob{ position:absolute; inset:0; animation:sn-bob 7s ease-in-out infinite alternate; }
+@keyframes sn-bob{ from{ transform:translateY(-10px); } to{ transform:translateY(12px); } }
+.sn-bird{
+  position:absolute;
+  height:auto;
+  overflow:visible;
+  fill:none;
+  stroke:var(--sn-bird);
+  stroke-width:1.9;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+  opacity:.82;
+}
+.sn-bird path{
+  transform-origin:12px 7px;
+  animation:sn-flap var(--b-flap) ease-in-out var(--b-delay) infinite alternate;
+}
+@keyframes sn-flap{ from{ transform:scaleY(1); } to{ transform:scaleY(-.45); } }
+
+/* --- hot-air balloon (summer) --- */
+.sn-balloon{
+  position:absolute; left:0;
+  top:var(--c-top);
+  width:var(--c-w);
+  animation:sn-cross var(--c-dur) linear var(--c-delay) infinite;
+  transition:opacity 1.2s var(--ease, ease);
+}
+.sn-balloon__bob{ animation:sn-float 9s ease-in-out infinite alternate; }
+@keyframes sn-float{ from{ transform:translateY(-16px) rotate(-2deg); } to{ transform:translateY(14px) rotate(2deg); } }
+.sn-balloon svg{ display:block; width:100%; height:auto; }
+.sn-balloon__env   { fill:var(--sn-accent); }
+.sn-balloon__stripe{ fill:#FFF4DA; }
+.sn-balloon__band  { fill:#F2C14E; opacity:.95; }
+.sn-balloon__rope  { stroke:#5C4A3A; stroke-width:1; fill:none; }
+.sn-balloon__basket{ fill:#8A6446; }
+
+/* --- butterflies (spring, summer) --- */
+.sn-bfly{
+  position:absolute; left:0;
+  top:var(--c-top);
+  width:var(--c-w);
+  animation:sn-cross-gap var(--c-dur) linear var(--c-delay) infinite;
+  transition:opacity 1.2s var(--ease, ease);
+}
+.sn-bfly--l{ animation-name:sn-cross-gap-l; }
+.sn-bfly__bob{ animation:sn-flutter var(--f-bob) ease-in-out infinite alternate; }
+@keyframes sn-flutter{
+  from{ transform:translateY(-24px) rotate(-10deg); }
+  to  { transform:translateY(18px)  rotate(10deg); }
+}
+.sn-bfly svg{ display:block; width:100%; height:auto; overflow:visible; }
+.sn-bfly__wing{
+  fill:var(--bf-1);
+  transform-origin:10px 8px;
+  animation:sn-wing .2s ease-in-out infinite alternate;
+}
+.sn-bfly__wing ellipse:nth-child(2){ fill:var(--bf-2); }
+.sn-bfly__body{ fill:#3A2E2A; }
+@keyframes sn-wing{ from{ transform:scaleX(1); } to{ transform:scaleX(.18); } }
+
+/* --- wind gusts: leaves (autumn), flakes (winter) --- */
+.sn-gust{
+  position:absolute; left:0;
+  top:var(--c-top);
+  width:var(--c-w);
+  animation:sn-cross-gap var(--c-dur) linear var(--c-delay) infinite;
+}
+.sn-gust__bob{ animation:sn-gust-wave var(--g-wave) ease-in-out infinite alternate; }
+@keyframes sn-gust-wave{ from{ transform:translateY(-38px); } to{ transform:translateY(30px); } }
+.sn-gust .sn-p__shape--snow{ animation:none; }
+
+/* --- fireflies (spring + summer, evening and night only) --- */
+.sn-fireflies{ position:absolute; inset:0; opacity:0; transition:opacity 1.6s var(--ease, ease); }
+html[data-time="evening"] .sn-fireflies{ opacity:.55; }
+html[data-time="night"]   .sn-fireflies{ opacity:1; }
+.sn-ff{
+  position:absolute;
+  width:4px; height:4px;
+  border-radius:50%;
+  background:#FBF6A8;
+  box-shadow:0 0 6px 2px rgba(246,240,130,.75), 0 0 16px 6px rgba(246,240,130,.25);
+  opacity:0;
+  animation:
+    sn-ff-glow var(--ff-glow) ease-in-out var(--ff-delay) infinite,
+    sn-ff-move var(--ff-move) ease-in-out var(--ff-delay) infinite alternate;
+}
+@keyframes sn-ff-glow{ 0%,100%{ opacity:0; } 45%,60%{ opacity:1; } }
+@keyframes sn-ff-move{ from{ transform:translate(0,0); } to{ transform:translate(var(--ff-x), var(--ff-y)); } }
+
+/* --- shooting star (night only) --- */
+.sn-meteor{
+  display:none;
+  position:absolute;
+  left:72%; top:9%;
+  width:130px; height:2px;
+  border-radius:2px;
+  background:linear-gradient(to right, #fff, rgba(255,255,255,0));
+  transform-origin:0 50%;
+  opacity:0;
+  animation:sn-meteor 13s linear 3s infinite;
+}
+html[data-time="night"] .sn-meteor{ display:block; }
+@keyframes sn-meteor{
+  0%  { opacity:0; transform:translate(0,0) rotate(-23deg) scaleX(.2); }
+  1.5%{ opacity:1; }
+  6%  { opacity:0; transform:translate(-300px,128px) rotate(-23deg) scaleX(1); }
+  100%{ opacity:0; transform:translate(-300px,128px) rotate(-23deg) scaleX(1); }
+}
+
+/* birds, balloon and butterflies go home after dark */
+html[data-time="night"] .sn-flock,
+html[data-time="night"] .sn-balloon,
+html[data-time="night"] .sn-bfly,
+html[data-time="evening"] .sn-bfly{ opacity:0; }
+
+/* --- distant treeline on the hills --- */
+.sn-far{ position:absolute; inset:0; opacity:.9; }
+.sn-far__tree{
+  position:absolute;
+  bottom:var(--t-b, 13.5%);
+  width:auto;
+  max-width:none;
+  transform:translateX(-50%);
+  overflow:visible;
+}
+.sn-far__trunk{ fill:color-mix(in srgb, var(--sn-bark-1) 72%, var(--sn-sky-3)); }
+.sn-far__twig { stroke:color-mix(in srgb, var(--sn-bark-2) 72%, var(--sn-sky-3)); stroke-width:1.3; fill:none; stroke-linecap:round; }
+.sn-far__crown{
+  fill:color-mix(in srgb, var(--sn-leaf-3) 68%, var(--sn-sky-3));
+  opacity:var(--sn-canopy);
+  transition:opacity 1s var(--ease, ease);
+}
+.sn-far__crown .sn-far__lit{ fill:color-mix(in srgb, var(--sn-leaf-2) 60%, var(--sn-sky-3)); opacity:.7; }
+html[data-season="spring"] .sn-far__tree:nth-child(3n) .sn-far__crown{ fill:color-mix(in srgb, var(--sn-petal-1) 78%, var(--sn-sky-3)); }
+html[data-season="spring"] .sn-far__tree:nth-child(3n) .sn-far__lit{ fill:var(--sn-petal-2); }
+.sn-far__needles{ fill:color-mix(in srgb, var(--sn-pine) 76%, var(--sn-sky-3)); }
+.sn-far__needles polygon:nth-child(2){ fill:color-mix(in srgb, var(--sn-pine) 86%, var(--sn-sky-3)); }
+.sn-far__snow{ fill:#FFFFFF; opacity:0; transition:opacity 1s var(--ease, ease); }
+html[data-season="winter"] .sn-far__snow{ opacity:.9; }
+
+/* --- flowers / fallen leaves on the grass (static) --- */
+.sn-dress{ position:absolute; left:0; right:0; bottom:0; height:14%; }
+.sn-dress__i{
+  position:absolute;
+  transform:rotate(var(--d-r)) scale(var(--d-s));
+}
+.sn-dress__i--flower,
+.sn-dress__i--sun{
+  width:5px; height:5px;
+  border-radius:50%;
+  background:var(--d-c);
+  box-shadow:0 0 0 1.5px color-mix(in srgb, var(--d-c) 45%, transparent);
+}
+.sn-dress__i--leaf{
+  width:10px; height:6px;
+  border-radius:78% 8% 78% 8%;
+  background:var(--d-c);
+  opacity:.9;
+}
+
+
+/* --- spring: the big trees are in blossom, the distant ones stay
+   mostly green so the valley does not turn into one pink wash --- */
+html[data-season="spring"] .sn-far__crown{ fill:color-mix(in srgb, #6FB270 70%, var(--sn-sky-3)); }
+html[data-season="spring"] .sn-far__lit  { fill:color-mix(in srgb, #A9DD95 64%, var(--sn-sky-3)); }
+
+/* --- winter wind: flakes blown sideways, streaks of moving air,
+   branches swaying harder --- */
+.sn-scene .sn-p--wind{
+  animation:sn-wind var(--p-dur) ease-in-out var(--p-delay) infinite;
+}
+@keyframes sn-wind{
+  0%   { transform:translate3d(0,0,0); opacity:0; }
+  6%   { opacity:var(--p-opacity); }
+  30%  { transform:translate3d(calc(var(--p-drift) * .20), calc(var(--sn-drop) * .30), 0); }
+  55%  { transform:translate3d(calc(var(--p-drift) * .56 + var(--p-sway)), calc(var(--sn-drop) * .54), 0); }
+  80%  { transform:translate3d(calc(var(--p-drift) * .86 - var(--p-sway)), calc(var(--sn-drop) * .82), 0); }
+  94%  { opacity:var(--p-opacity); }
+  100% { transform:translate3d(var(--p-drift), var(--sn-drop), 0); opacity:0; }
+}
+.sn-windline{
+  position:absolute; left:0;
+  top:var(--c-top);
+  width:var(--c-w); height:1.5px;
+  border-radius:2px;
+  background:linear-gradient(to right, rgba(255,255,255,0), rgba(255,255,255,.9) 45%, rgba(255,255,255,0));
+  animation:sn-cross-gap var(--c-dur) linear var(--c-delay) infinite;
+}
+html[data-season="winter"] .sn-canopy,
+html[data-sn-weather="rain"] .sn-canopy{
+  animation-name:sn-sway-wind;
+  animation-duration:4.5s;
+}
+html[data-season="winter"] .sn-tree--r .sn-canopy,
+html[data-sn-weather="rain"] .sn-tree--r .sn-canopy{ animation-duration:5.5s; }
+@keyframes sn-sway-wind{
+  from{ transform:rotate(-.4deg) translateX(-2px); }
+  to  { transform:rotate(1.6deg)  translateX(5px); }
+}
+
+/* --- rain (rare: summer, sometimes spring, very rarely autumn) ---
+   season.js sets data-sn-weather="rain" on <html>. */
+.sn-overcast, .sn-gloom{
+  position:absolute; inset:0;
+  opacity:0;
+  transition:opacity 1.6s var(--ease, ease);
+  pointer-events:none;
+}
+.sn-overcast{
+  background:linear-gradient(to bottom,
+    color-mix(in srgb, #56606C 82%, var(--sn-sky-1)) 0%,
+    color-mix(in srgb, #8C96A1 78%, var(--sn-sky-2)) 55%,
+    color-mix(in srgb, #B3BBC3 74%, var(--sn-sky-3)) 100%);
+  filter:brightness(calc(1 - var(--sn-dim) * .85));
+}
+.sn-gloom{ background:linear-gradient(to bottom, rgba(34,44,58,.10), rgba(34,44,58,.26)); }
+html[data-sn-weather="rain"] .sn-overcast{ opacity:.96; }
+html[data-sn-weather="rain"] .sn-gloom{ opacity:1; }
+html[data-sn-weather="rain"] .sn-orb{ opacity:.1; }
+html[data-sn-weather="rain"] .sn-stars,
+html[data-sn-weather="rain"] .sn-bloom,
+html[data-sn-weather="rain"] .sn-meteor{ opacity:0; }
+.sn-orb, .sn-bloom{ transition:opacity 1.6s var(--ease, ease); }
+
+/* rain clouds: heavy and grey, darker still at night */
+html[data-sn-weather="rain"] .sn-clouds{
+  --sn-cloud:#8D97A2; --sn-cloud-shade:#5C6571;
+  opacity:.97;
+  filter:none;
+}
+html[data-sn-weather="rain"][data-time="night"] .sn-clouds,
+html[data-sn-weather="rain"][data-time="evening"] .sn-clouds{
+  --sn-cloud:#3A4453; --sn-cloud-shade:#222A36;
+}
+
+.sn-rain{
+  position:absolute; inset:0;
+  overflow:hidden;
+  pointer-events:none;
+}
+.sn-rdrop{
+  position:absolute; top:-40px;
+  width:1.7px; height:var(--r-len);
+  border-radius:1px;
+  background:linear-gradient(to bottom, rgba(225,235,246,0), rgba(225,235,246,.9));
+  transform:rotate(12deg);
+  animation:sn-rain var(--r-dur) linear var(--r-delay) infinite;
+}
+@keyframes sn-rain{
+  from{ transform:translate3d(0,0,0) rotate(12deg); }
+  to  { transform:translate3d(calc(var(--sn-h, 100vh) * -.21), calc(var(--sn-h, 100vh) + 60px), 0) rotate(12deg); }
+}
+.sn-splash{
+  position:absolute;
+  width:12px; height:3px;
+  border-radius:50%;
+  border:1px solid rgba(230,238,246,.7);
+  opacity:0;
+  animation:sn-splash var(--r-dur) ease-out var(--r-delay) infinite;
+}
+@keyframes sn-splash{
+  0%  { transform:scale(.2); opacity:0; }
+  15% { opacity:.8; }
+  100%{ transform:scale(1.4); opacity:0; }
+}
+
+
+/* keeps the card the brightest thing on screen */
+.sn-vignette{
+  position:absolute; inset:0;
+  background:radial-gradient(52% 46% at 50% 48%,
+    rgba(255,255,255,.20) 0%, transparent 66%),
+    linear-gradient(to bottom, rgba(8,14,26,.14), transparent 28%, rgba(8,14,26,.20));
+}
+
+
+/* ============================================================
+   6. Falling particles
+   One wrapper does the fall + drift, the inner shape does the
+   spin. Everything is CSS animation; JS only writes the random
+   values once per season change.
+   --sn-drop is set on .sn-fall in px by season.js.
+   ============================================================ */
+.sn-fall{
+  position:absolute; inset:0;
+  overflow:hidden;
+  filter:brightness(var(--sn-bright));
+}
+.sn-p{
+  position:absolute;
+  top:var(--p-top);
+  left:var(--p-x);
+  will-change:transform, opacity;
+  animation:sn-drop var(--p-dur) linear var(--p-delay) infinite;
+}
+@keyframes sn-drop{
+  0%   { transform:translate3d(0,0,0);                      opacity:0; }
+  7%   { opacity:var(--p-opacity); }
+  88%  { opacity:var(--p-opacity); }
+  100% { transform:translate3d(var(--p-drift), var(--sn-drop), 0); opacity:0; }
+}
+
+/* In the sign-in scene leaves and petals are released from the
+   canopy (season.js measures it), swing side to side on the way
+   down, rest on the grass for a moment and fade. --sn-drop is set
+   per leaf, so each one lands exactly on the ground strip. */
+.sn-scene .sn-p--leaf{
+  animation:sn-leaf var(--p-dur) ease-in-out var(--p-delay) infinite;
+}
+@keyframes sn-leaf{
+  0%   { transform:translate3d(0,0,0); opacity:0; }
+  5%   { opacity:var(--p-opacity); }
+  22%  { transform:translate3d(calc(var(--p-drift) * .18 + var(--p-sway)), calc(var(--sn-drop) * .22), 0); }
+  44%  { transform:translate3d(calc(var(--p-drift) * .42 - var(--p-sway)), calc(var(--sn-drop) * .45), 0); }
+  66%  { transform:translate3d(calc(var(--p-drift) * .66 + var(--p-sway)), calc(var(--sn-drop) * .68), 0); }
+  86%  { transform:translate3d(var(--p-drift), var(--sn-drop), 0); opacity:var(--p-opacity); }
+  100% { transform:translate3d(var(--p-drift), var(--sn-drop), 0); opacity:0; }
+}
+
+/* nothing animates while the tab is in the background */
+html[data-sn-paused] .sn-p,
+html[data-sn-paused] .sn-p__shape,
+html[data-sn-paused] .sn-canopy,
+html[data-sn-paused] .sn-stars,
+html[data-sn-paused] .sn-cloud,
+html[data-sn-paused] .sn-flock,
+html[data-sn-paused] .sn-flock__bob,
+html[data-sn-paused] .sn-bird path,
+html[data-sn-paused] .sn-balloon,
+html[data-sn-paused] .sn-balloon__bob,
+html[data-sn-paused] .sn-bfly,
+html[data-sn-paused] .sn-bfly__bob,
+html[data-sn-paused] .sn-bfly__wing,
+html[data-sn-paused] .sn-gust,
+html[data-sn-paused] .sn-gust__bob,
+html[data-sn-paused] .sn-ff,
+html[data-sn-paused] .sn-meteor,
+html[data-sn-paused] .sn-windline,
+html[data-sn-paused] .sn-rdrop,
+html[data-sn-paused] .sn-splash{ animation-play-state:paused; }
+
+.sn-p__shape{
+  display:block;
+  width:var(--p-size);
+  height:var(--p-size);
+  animation:sn-spin var(--p-spin) linear infinite;
+}
+@keyframes sn-spin{
+  from{ transform:rotate3d(1,1,.4,0deg); }
+  to  { transform:rotate3d(1,1,.4,360deg); }
+}
+
+/* leaf: two-tone blade with a centre vein */
+.sn-p__shape--leaf{
+  height:calc(var(--p-size) * .74);
+  border-radius:78% 8% 78% 8%;
+  background:linear-gradient(135deg, var(--sn-leaf-2), var(--sn-leaf-1) 52%, var(--sn-leaf-3));
+  position:relative;
+}
+.sn-p__shape--leaf::after{
+  content:"";
+  position:absolute; inset:0;
+  border-radius:inherit;
+  background:linear-gradient(135deg, transparent 46%, rgba(255,255,255,.42) 49%, transparent 52%);
+}
+/* petal: rounder, softer, blossom colours */
+.sn-p__shape--petal{
+  height:calc(var(--p-size) * .82);
+  border-radius:62% 62% 62% 10%;
+  background:linear-gradient(150deg, var(--sn-petal-2), var(--sn-petal-1));
+}
+/* flake */
+.sn-p__shape--snow{
+  border-radius:50%;
+  background:radial-gradient(circle at 34% 30%, #fff 0 42%, rgba(255,255,255,.62) 100%);
+  box-shadow:0 0 4px rgba(255,255,255,.55);
+  animation:none;
+}
+
+
+/* ============================================================
+   7. Season picker
+   Bottom-left so it never collides with the brandmark on the
+   sign-in slab or the sticky header inside the portal.
+   ============================================================ */
+.sn-picker{
+  position:fixed;
+  left:max(16px, env(safe-area-inset-left));
+  bottom:max(16px, env(safe-area-inset-bottom));
+  z-index:60;
+  display:none;
+  align-items:center;
+  gap:8px;
+  padding:7px 9px 7px 11px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.24);
+  background:rgba(16,22,30,.42);
+  backdrop-filter:blur(14px) saturate(1.3);
+  -webkit-backdrop-filter:blur(14px) saturate(1.3);
+  box-shadow:0 10px 30px -18px rgba(0,0,0,.7);
+  color:#fff;
+  opacity:.72;
+  transition:opacity .25s var(--ease, ease), transform .25s var(--ease, ease);
+}
+html[data-sn-screen="login"] .sn-picker,
+html[data-sn-screen="app"]   .sn-picker{ display:inline-flex; }
+
+.sn-picker:hover,
+.sn-picker:focus-within{ opacity:1; transform:translateY(-1px); }
+
+.sn-picker__glyph{ display:none; font-size:15px; line-height:1; }
+
+.sn-picker__select{
+  appearance:none;
+  -webkit-appearance:none;
+  border:0;
+  background:transparent;
+  color:inherit;
+  font-family:var(--font-mono, monospace);
+  font-size:10px;
+  font-weight:500;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  padding:2px 18px 2px 0;
+  cursor:pointer;
+}
+.sn-picker__select:focus-visible{ outline:2px solid #fff; outline-offset:3px; border-radius:2px; }
+.sn-picker__select option{ color:#12171C; background:#fff; letter-spacing:normal; text-transform:none; }
+.sn-picker::after{
+  content:"";
+  position:absolute; right:12px;
+  width:6px; height:6px;
+  border-right:1.4px solid currentColor;
+  border-bottom:1.4px solid currentColor;
+  transform:translateY(-2px) rotate(45deg);
+  pointer-events:none;
+  opacity:.75;
+}
+
+/* inside the portal the chip sits on paper, so it flips to ink */
+html[data-sn-screen="app"] .sn-picker{
+  background:var(--overlay);
+  border-color:var(--rule);
+  color:var(--ink-soft);
+  box-shadow:var(--shadow);
+}
+
+
+/* ============================================================
+   8. Sign-in surface polish
+   Frosted card + seasonal accent. Layout, spacing, type and the
+   form itself are untouched.
+   ============================================================ */
+html[data-sn-screen="login"]{
+  --seal:var(--sn-accent);            /* slip rule, serial, focus ring */
+  --slab-accent:var(--sn-accent-lit); /* label + title emphasis on the slab */
+}
+
+/* --- the brand column becomes a dark glass panel: the mirror of
+   the sign-in slip on the other side of the screen --- */
+html[data-sn-screen="login"] .auth__brandInner{
+  padding:clamp(26px,3.2vw,40px);
+  border-radius:10px;
+  background:color-mix(in srgb, var(--slab) 78%, transparent);
+  border:1px solid rgba(255,255,255,.14);
+  backdrop-filter:blur(20px) saturate(1.3);
+  -webkit-backdrop-filter:blur(20px) saturate(1.3);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.10) inset,
+    0 34px 70px -34px rgba(6,10,20,.75);
+  overflow:hidden;
+}
+/* the ruled-ledger texture the solid slab used to carry */
+html[data-sn-screen="login"] .auth__brandInner::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background-image:repeating-linear-gradient(
+    to bottom, rgba(255,255,255,.045) 0 1px, transparent 1px 36px);
+  pointer-events:none;
+}
+html[data-sn-screen="login"] .auth__brandInner > *{ position:relative; z-index:1; }
+
+html[data-sn-screen="login"] .slip{
+  background:color-mix(in srgb, var(--surface) 90%, transparent);
+  border-color:color-mix(in srgb, var(--rule) 72%, transparent);
+  border-radius:10px;
+  backdrop-filter:blur(20px) saturate(1.35);
+  -webkit-backdrop-filter:blur(20px) saturate(1.35);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.42) inset,
+    0 2px 6px rgba(10,16,28,.10),
+    0 34px 70px -34px rgba(10,16,28,.55);
+}
+html[data-sn-screen="login"] .slip__head{
+  background:color-mix(in srgb, var(--surface-3) 74%, transparent);
+}
+html[data-sn-screen="login"] .slip__foot{
+  background:color-mix(in srgb, var(--surface-2) 70%, transparent);
+}
+/* the confirmation panel stays fully opaque so it is always legible */
+html[data-sn-screen="login"] .stamp{ background:var(--surface); }
+
+/* a hairline of season colour along the top of the glass panel */
+html[data-sn-screen="login"] .auth__brandInner{
+  border-top-color:color-mix(in srgb, var(--sn-accent-lit) 48%, transparent);
+}
+
+
+/* ============================================================
+   9. Portal ambience
+   After sign-in: no scenery. Only the season's own particles —
+   leaves for spring/summer/autumn, snow for winter — drifting
+   softly over the page, plus a barely-there seasonal wash.
+   ============================================================ */
+.sn-portal{
+  position:fixed;
+  inset:0;
+  z-index:5;               /* under the sticky header (40) */
+  display:none;
+  pointer-events:none;
+  overflow:hidden;
+}
+html[data-sn-screen="app"] .sn-portal{ display:block; }
+
+.sn-portal::before{
+  content:"";
+  position:absolute; inset:0;
+  background:radial-gradient(92% 46% at 50% 0%,
+    color-mix(in srgb, var(--sn-accent) 9%, transparent) 0%, transparent 70%);
+}
+/* the scene's night dimming must not follow the particles onto the portal,
+   which keeps its own light/dark theme */
+.sn-portal .sn-fall{ filter:none; }
+
+/* a flake has to hold its own against paper, not just against sky */
+.sn-portal .sn-p__shape--snow{
+  background:radial-gradient(circle at 34% 30%,
+    #fff 0 34%, color-mix(in srgb, var(--sn-accent) 62%, #fff) 100%);
+  box-shadow:0 1px 4px color-mix(in srgb, var(--sn-accent) 26%, transparent);
+}
+
+
+/* ============================================================
+   10. Responsive, reduced motion, print
+   ============================================================ */
+@media (max-width: 860px){
+  /* stacked layout: the scene fills the form half, trees pull in */
+  .sn-tree--l{ left:-14%; height:70%; }
+  .sn-tree--r{ right:-16%; height:62%; }
+  .sn-hills{ bottom:7%; height:28%; }
+  .sn-picker{ left:12px; bottom:12px; padding:6px 8px 6px 10px; }
+  .sn-picker__select{ font-size:9.5px; letter-spacing:.1em; }
+}
+
+@media (max-width: 560px){
+  .sn-tree--l{ left:-20%; height:60%; }
+  .sn-tree--r{ right:-22%; height:53%; }
+  html[data-sn-screen="login"] .slip{ backdrop-filter:blur(14px) saturate(1.2); }
+
+  /* the card is nearly full width on a phone, so the picker shrinks to a
+     single glyph and keeps out of the form's way */
+  .sn-picker{
+    left:10px; bottom:10px;
+    width:38px; height:38px;
+    padding:0;
+    justify-content:center;
+  }
+  .sn-picker::after{ display:none; }
+  .sn-picker__glyph{ display:block; }
+  .sn-picker__select{
+    position:absolute;
+    inset:0;
+    width:100%; height:100%;
+    padding:0;
+    opacity:0;
+  }
+}
+
+/* Reduced motion: the scene stays, the movement goes.
+   season.js also skips building particles entirely. */
+@media (prefers-reduced-motion: reduce){
+  .sn-fall{ display:none; }
+  .sn-canopy,
+  .sn-stars{ animation:none; }
+  html{ transition:none; }
+  /* clouds hold still where they are; everything that flies is removed */
+  .sn-cloud{ animation:none; transform:translate3d(var(--c-rest, 0px),0,0); }
+  .sn-air, .sn-near, .sn-meteor, .sn-rain{ display:none !important; }
+}
+
+@media print{
+  .sn-scene, .sn-portal, .sn-picker{ display:none !important; }
+}

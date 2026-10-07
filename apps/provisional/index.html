@@ -1,0 +1,2673 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Provisional Result Tool — CoE</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      /* ---- registry palette ---- */
+      --ink: #101922;
+      /* primary text */
+      --ink2: #3c4c5e;
+      /* secondary text */
+      --muted: #6b7b8c;
+      /* labels, captions */
+      --paper: #e9edf2;
+      /* page */
+      --card: #ffffff;
+      /* sheets */
+      --card2: #f7f9fb;
+      /* inset areas */
+      --rule: #d4dbe3;
+      /* hairlines */
+      --rule2: #b6c2ce;
+      /* stronger hairlines */
+      --navy: #16375c;
+      /* registry ink — primary accent */
+      --navy2: #1f4e80;
+      /* hover */
+      --navyDeep: #0d2038;
+      /* masthead (legacy) */
+      --header: #3ba9e0;
+      /* sky blue — masthead */
+      --headerDeep: #2c86b5;
+      /* darker sky blue for base rule */
+      --seal: #a8341f;
+      /* stamp red — fail / destructive */
+      --sealBg: #f8eae6;
+      --pass: #1a6b47;
+      /* ledger green — pass */
+      --passBg: #e8f1ec;
+      --amber: #8a6410;
+      /* annotation ochre — improvement */
+      --amberBg: #f7efdc;
+
+      --sans: 'IBM Plex Sans', system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --serif: 'Newsreader', Georgia, 'Times New Roman', serif;
+      --mono: 'IBM Plex Mono', ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+      --lift: 0 1px 2px rgba(16, 25, 34, .06);
+      --lift2: 0 6px 18px rgba(16, 25, 34, .10);
+      --ring: 0 0 0 3px rgba(22, 55, 92, .18);
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    html {
+      scroll-behavior: smooth
+    }
+
+    body {
+      margin: 0;
+      font-family: var(--sans);
+      color: var(--ink);
+      font-size: 14px;
+      line-height: 1.55;
+      background:
+        repeating-linear-gradient(to bottom, rgba(16, 25, 34, .028) 0 1px, transparent 1px 30px),
+        var(--paper);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale
+    }
+
+    ::selection {
+      background: rgba(22, 55, 92, .16)
+    }
+
+    :focus-visible {
+      outline: 2px solid var(--navy);
+      outline-offset: 2px
+    }
+
+    /* ---------- masthead ---------- */
+    header.app {
+      position: relative;
+      background: var(--header);
+      color: #fff;
+      padding: 30px 32px 26px;
+      background-image: repeating-linear-gradient(to bottom, rgba(255, 255, 255, .035) 0 1px, transparent 1px 30px)
+    }
+
+    header.app::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 5px;
+      background: linear-gradient(to bottom, var(--headerDeep) 0 2px, transparent 2px 3px, rgba(255, 255, 255, .28) 3px 4px, transparent 4px 5px)
+    }
+
+    header.app .hbar {
+      position: relative;
+      max-width: 1160px;
+      margin: 0 auto;
+      display: flex;
+      align-items: flex-start;
+      gap: 18px
+    }
+
+    header.app .online {
+      position: absolute;
+      top: 0;
+      right: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font: 600 9px/1 var(--mono);
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: #d7f2ee
+    }
+
+    header.app .online .odot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #38d39f;
+      box-shadow: 0 0 0 3px rgba(56, 211, 159, .28)
+    }
+
+    header.app .logo {
+      flex: 0 0 auto;
+      height: 52px;
+      padding: 6px 10px;
+      border-radius: 4px;
+      background: #fff;
+      border: 1px solid rgba(255, 255, 255, .5);
+      display: grid;
+      place-items: center;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, .25)
+    }
+
+    header.app .logo img {
+      height: 40px;
+      width: auto;
+      display: block
+    }
+
+    header.app h1 {
+      margin: 0;
+      font-family: var(--serif);
+      font-size: 27px;
+      font-weight: 500;
+      letter-spacing: -.2px;
+      line-height: 1.2
+    }
+
+    header.app p {
+      margin: 8px 0 0;
+      color: #a8bdd3;
+      font-size: 13px;
+      max-width: 780px;
+      line-height: 1.6
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 14px;
+      padding: 8px 16px;
+      background: var(--pass);
+      border: 1px solid var(--pass);
+      border-radius: 4px;
+      font: 600 11px/1.4 var(--sans);
+      letter-spacing: .02em;
+      color: #fff;
+      box-shadow: 0 2px 6px rgba(26, 107, 71, .35)
+    }
+
+    .pill .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, .35)
+    }
+
+    @media(max-width:640px) {
+      header.app {
+        padding: 22px 18px 20px
+      }
+
+      header.app h1 {
+        font-size: 21px
+      }
+
+      header.app .logo {
+        height: 46px;
+        padding: 5px 8px
+      }
+
+      header.app .logo img {
+        height: 34px
+      }
+    }
+
+    .wrap {
+      max-width: 1160px;
+      margin: 0 auto;
+      padding: 34px 24px 90px
+    }
+
+    @media(max-width:640px) {
+      .wrap {
+        padding: 24px 16px 70px
+      }
+    }
+
+    /* ---------- section titles ---------- */
+    .section-title {
+      display: flex;
+      align-items: center;
+      margin: 38px 0 16px;
+      font-family: var(--serif);
+      font-size: 19px;
+      font-weight: 500;
+      letter-spacing: -.1px;
+      color: var(--ink)
+    }
+
+    .section-title:first-child {
+      margin-top: 6px
+    }
+
+    .section-title::after {
+      content: "";
+      flex: 1 1 auto;
+      height: 1px;
+      background: var(--rule);
+      margin-left: 18px
+    }
+
+    .section-title span.num {
+      flex: 0 0 auto;
+      display: inline-grid;
+      place-items: center;
+      width: 24px;
+      height: 24px;
+      margin-right: 12px;
+      border: 1.5px solid var(--navy);
+      border-radius: 3px;
+      color: var(--navy);
+      font: 600 11px/1 var(--mono)
+    }
+
+    /* ---------- sheets / panels ---------- */
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--rule);
+      border-radius: 6px;
+      padding: 22px;
+      box-shadow: var(--lift)
+    }
+
+    .panel h3 {
+      margin: 0 0 4px;
+      font-family: var(--serif);
+      font-size: 17px;
+      font-weight: 500
+    }
+
+    .panel .sub {
+      color: var(--muted);
+      font-size: 12.5px;
+      margin: 0 0 14px
+    }
+
+    /* ---------- upload slips ---------- */
+    .drop {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: var(--card2);
+      border: 1.5px dashed var(--rule2);
+      border-radius: 5px;
+      padding: 22px 14px 26px;
+      text-align: center;
+      cursor: pointer;
+      min-height: 106px;
+      color: var(--ink);
+      transition: background .15s ease, border-color .15s ease
+    }
+
+    .drop::before {
+      content: "⬆";
+      display: block;
+      font-size: 17px;
+      line-height: 1;
+      margin-bottom: 10px;
+      color: var(--muted)
+    }
+
+    .drop:hover,
+    .drop.hot {
+      border-color: var(--navy);
+      background: #eef3f9
+    }
+
+    .drop:hover::before,
+    .drop.hot::before {
+      color: var(--navy)
+    }
+
+    .drop.filled {
+      border-style: solid;
+      border-color: var(--pass);
+      background: var(--passBg)
+    }
+
+    .drop.filled::before {
+      content: "✓";
+      color: var(--pass);
+      font-size: 18px;
+      font-weight: 700
+    }
+
+    .drop.filled::after {
+      content: "RECEIVED";
+      position: absolute;
+      right: 10px;
+      bottom: 8px;
+      font: 500 8px/1 var(--mono);
+      letter-spacing: .16em;
+      color: var(--pass);
+      border: 1px solid var(--pass);
+      border-radius: 2px;
+      padding: 3px 5px;
+      opacity: .55;
+      transform: rotate(-5deg)
+    }
+
+    .drop .lbl {
+      font-size: 13.5px;
+      font-weight: 600;
+      letter-spacing: -.1px
+    }
+
+    .drop .fname {
+      font: 400 10.5px/1.45 var(--mono);
+      margin-top: 9px;
+      color: var(--muted);
+      word-break: break-word;
+      max-width: 100%
+    }
+
+    .drop.filled .fname {
+      color: var(--pass)
+    }
+
+    .drop .clr {
+      position: absolute;
+      top: 6px;
+      right: 7px;
+      width: 20px;
+      height: 20px;
+      border-radius: 3px;
+      display: none;
+      place-items: center;
+      font-size: 11px;
+      line-height: 1;
+      background: var(--card);
+      border: 1px solid var(--rule2);
+      color: var(--muted);
+      cursor: pointer;
+      transition: .15s
+    }
+
+    .drop.filled .clr {
+      display: grid
+    }
+
+    .drop .clr:hover {
+      background: var(--seal);
+      border-color: var(--seal);
+      color: #fff
+    }
+
+    input[type=file] {
+      display: none
+    }
+
+    /* ---------- notes / rules text ---------- */
+    .rules {
+      font-size: 12.5px;
+      color: var(--ink2);
+      line-height: 1.8
+    }
+
+    .rules b {
+      color: var(--ink);
+      font-weight: 600
+    }
+
+    .rules .rk {
+      display: inline-block;
+      background: var(--card2);
+      border: 1px solid var(--rule);
+      border-radius: 3px;
+      padding: 2px 8px;
+      color: var(--amber);
+      font: 500 11px var(--mono);
+      white-space: nowrap
+    }
+
+    /* ---------- controls ---------- */
+    .actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap
+    }
+
+    button {
+      font-family: var(--sans);
+      transition: background .15s ease, color .15s ease, border-color .15s ease
+    }
+
+    button.primary {
+      background: var(--navy);
+      color: #fff;
+      border: 1px solid var(--navy);
+      border-radius: 4px;
+      padding: 12px 22px;
+      font-weight: 600;
+      font-size: 13.5px;
+      letter-spacing: .01em;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      box-shadow: var(--lift)
+    }
+
+    button.primary:hover:not(:disabled) {
+      background: var(--navy2);
+      border-color: var(--navy2)
+    }
+
+    button.primary:disabled {
+      background: #e2e8ee;
+      border-color: var(--rule);
+      color: #9aa7b4;
+      box-shadow: none;
+      cursor: not-allowed
+    }
+
+    button.download {
+      background: var(--pass);
+      color: #fff;
+      border: 1px solid var(--pass);
+      border-radius: 4px;
+      padding: 12px 20px;
+      font-weight: 600;
+      font-size: 13.5px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: var(--lift)
+    }
+
+    button.download:hover:not(:disabled) {
+      background: #155839;
+      border-color: #155839
+    }
+
+    button.download:disabled {
+      background: #e2e8ee;
+      border-color: var(--rule);
+      color: #9aa7b4;
+      box-shadow: none;
+      cursor: not-allowed
+    }
+
+    button.ghost {
+      background: transparent;
+      color: var(--ink2);
+      border: 1px solid var(--rule2);
+      border-radius: 4px;
+      padding: 12px 18px;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px
+    }
+
+    button.ghost:hover:not(:disabled) {
+      border-color: var(--seal);
+      color: var(--seal);
+      background: var(--sealBg)
+    }
+
+    button.ghost:disabled {
+      opacity: .4;
+      cursor: not-allowed
+    }
+
+    .status {
+      margin-top: 18px;
+      padding-top: 16px;
+      border-top: 1px solid var(--rule);
+      font-size: 12.5px;
+      color: var(--ink2);
+      min-height: 20px;
+      display: flex;
+      align-items: center;
+      gap: 9px
+    }
+
+    .status .sdot {
+      width: 7px;
+      height: 7px;
+      border-radius: 2px;
+      background: var(--rule2);
+      flex: 0 0 auto
+    }
+
+    .status.ready {
+      color: var(--ink)
+    }
+
+    .status.ready .sdot {
+      background: var(--pass)
+    }
+
+    .log {
+      margin-top: 14px;
+      background: var(--navyDeep);
+      border: 1px solid var(--navyDeep);
+      border-radius: 5px;
+      padding: 14px 16px;
+      font: 400 11.5px/1.75 var(--mono);
+      color: #bccbdb;
+      max-height: 240px;
+      overflow: auto;
+      display: none;
+      white-space: pre-wrap
+    }
+
+    .log.show {
+      display: block
+    }
+
+    .log .ok {
+      color: #6ed49e
+    }
+
+    .log .warn {
+      color: #e8bd63
+    }
+
+    .log .err {
+      color: #f19183
+    }
+
+    /* ---------- semester register ---------- */
+    .semblock {
+      position: relative;
+      background: var(--card);
+      border: 1px solid var(--rule);
+      border-left: 3px solid var(--rule2);
+      border-radius: 6px;
+      padding: 16px 20px 20px;
+      margin-bottom: 14px;
+      box-shadow: var(--lift);
+      transition: border-color .18s ease
+    }
+
+    .semblock:hover {
+      border-left-color: var(--navy)
+    }
+
+    .semblock:has(.drop.filled) {
+      border-left-color: var(--pass)
+    }
+
+    .semhead {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 0 0 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--rule)
+    }
+
+    .semhead .tag {
+      display: inline-flex;
+      align-items: center;
+      background: transparent;
+      color: var(--navy);
+      border: 1px solid var(--navy);
+      border-radius: 3px;
+      padding: 4px 9px;
+      font: 600 10.5px/1 var(--mono);
+      letter-spacing: .1em
+    }
+
+    .semblock:has(.drop.filled) .semhead .tag {
+      color: var(--pass);
+      border-color: var(--pass)
+    }
+
+    .semhead h3 {
+      margin: 0;
+      font-family: var(--serif);
+      font-size: 17px;
+      font-weight: 500;
+      letter-spacing: -.1px
+    }
+
+    .semhead .hint {
+      margin-left: auto;
+      font: 400 10px/1 var(--mono);
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 6px
+    }
+
+    @media(max-width:640px) {
+      .semhead .hint {
+        display: none
+      }
+    }
+
+    .semrow {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px
+    }
+
+    @media(max-width:640px) {
+      .semrow {
+        grid-template-columns: 1fr
+      }
+    }
+
+    .cell .celllbl {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 9px;
+      font: 500 10px/1 var(--mono);
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--muted)
+    }
+
+    .cell .celllbl::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 1px;
+      background: var(--rule2)
+    }
+
+    .cell.reglbl .celllbl {
+      color: var(--navy)
+    }
+
+    .cell.reglbl .celllbl::before {
+      background: var(--navy)
+    }
+
+    .cell.suplbl .celllbl {
+      color: var(--amber)
+    }
+
+    .cell.suplbl .celllbl::before {
+      background: var(--amber)
+    }
+
+    .sheetsel {
+      margin-top: 11px;
+      display: none;
+      animation: fadeUp .28s ease
+    }
+
+    .sheetsel.show {
+      display: block
+    }
+
+    .sheetsel label {
+      display: block;
+      margin: 0 0 6px;
+      font: 500 10px/1 var(--mono);
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--muted)
+    }
+
+    .sheetsel select {
+      width: 100%;
+      background: var(--card);
+      color: var(--ink);
+      border: 1px solid var(--rule2);
+      border-radius: 4px;
+      padding: 10px 34px 10px 11px;
+      font: 400 13px var(--sans);
+      cursor: pointer;
+      transition: border-color .15s ease, box-shadow .15s ease;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%236b7b8c' stroke-width='2'%3E%3Cpath d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center
+    }
+
+    .sheetsel select:hover {
+      border-color: var(--navy)
+    }
+
+    .sheetsel select:focus {
+      outline: none;
+      border-color: var(--navy);
+      box-shadow: var(--ring)
+    }
+
+    /* ---------- summary ---------- */
+    .summary {
+      display: none;
+      margin-top: 26px;
+      animation: fadeUp .35s ease
+    }
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(10px)
+      }
+
+      to {
+        opacity: 1;
+        transform: none
+      }
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 1px;
+      background: var(--rule);
+      border: 1px solid var(--rule);
+      border-radius: 6px;
+      overflow: hidden;
+      box-shadow: var(--lift)
+    }
+
+    @media(max-width:1000px) {
+      .cards {
+        grid-template-columns: repeat(3, 1fr)
+      }
+    }
+
+    @media(max-width:760px) {
+      .cards {
+        grid-template-columns: repeat(2, 1fr)
+      }
+    }
+
+    .stat {
+      background: var(--card);
+      padding: 18px 18px 16px
+    }
+
+    .stat .n {
+      font: 500 30px/1 var(--mono);
+      letter-spacing: -1px;
+      font-variant-numeric: tabular-nums;
+      color: var(--ink)
+    }
+
+    .stat .l {
+      font-size: 11.5px;
+      color: var(--muted);
+      margin-top: 9px;
+      line-height: 1.4
+    }
+
+    .stat.total .n {
+      color: var(--navy)
+    }
+
+    .stat.pass .n {
+      color: var(--pass)
+    }
+
+    .stat.fail .n {
+      color: var(--seal)
+    }
+
+    .stat.impr .n {
+      color: var(--amber)
+    }
+
+    .stat.rev .n {
+      color: var(--seal)
+    }
+
+    .stat.withheld .n {
+      color: var(--amber)
+    }
+
+    .tablewrap {
+      margin-top: 20px;
+      overflow: auto;
+      background: var(--card);
+      border: 1px solid var(--rule);
+      border-radius: 6px;
+      max-height: 540px;
+      box-shadow: var(--lift)
+    }
+
+    table {
+      border-collapse: separate;
+      border-spacing: 0;
+      width: 100%;
+      font-size: 12.5px
+    }
+
+    th,
+    td {
+      padding: 10px 14px;
+      text-align: left;
+      border-bottom: 1px solid #e6ebf1;
+      white-space: nowrap
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: #eef2f7;
+      color: var(--ink2);
+      font: 500 10px/1.4 var(--mono);
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--rule2)
+    }
+
+    tbody tr:nth-child(even) {
+      background: #fbfcfe
+    }
+
+    tbody tr:hover {
+      background: #eef3f9
+    }
+
+    tbody td:first-child {
+      font: 500 12px var(--mono);
+      color: var(--navy)
+    }
+
+    td.P {
+      color: var(--pass);
+      font-weight: 600
+    }
+
+    td.F {
+      color: var(--seal);
+      font-weight: 600
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 9px;
+      border-radius: 2px;
+      font: 500 10px/1.4 var(--mono);
+      letter-spacing: .08em;
+      text-transform: uppercase
+    }
+
+    .badge.P {
+      background: var(--passBg);
+      color: var(--pass);
+      border: 1px solid rgba(26, 107, 71, .3)
+    }
+
+    .badge.F {
+      background: var(--sealBg);
+      color: var(--seal);
+      border: 1px solid rgba(168, 52, 31, .3)
+    }
+
+    .badge.up {
+      background: var(--amberBg);
+      color: var(--amber);
+      border: 1px solid rgba(138, 100, 16, .3);
+      margin-left: 6px
+    }
+
+    .badge.W {
+      background: var(--amberBg);
+      color: var(--amber);
+      border: 1px solid rgba(138, 100, 16, .55);
+      font-weight: 600
+    }
+
+    td.W {
+      color: var(--amber);
+      font-weight: 600
+    }
+
+    .note {
+      font-size: 12.5px;
+      color: var(--ink2);
+      margin-top: 14px;
+      background: #f1f5fa;
+      border: 1px solid var(--rule);
+      border-left: 2px solid var(--navy);
+      border-radius: 4px;
+      padding: 12px 15px
+    }
+
+    .note b {
+      color: var(--ink);
+      font-weight: 600
+    }
+
+    .foot {
+      margin-top: 46px;
+      padding-top: 20px;
+      border-top: 1px solid var(--rule);
+      font: 400 10.5px/1.6 var(--mono);
+      letter-spacing: .09em;
+      text-transform: uppercase;
+      color: var(--muted);
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px
+    }
+
+    .foot .lock {
+      opacity: .8
+    }
+
+    @media (prefers-reduced-motion:reduce) {
+      * {
+        animation-duration: .001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .001ms !important;
+        scroll-behavior: auto !important
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header class="app">
+    <div class="hbar">
+      <span class="online"><span class="odot"></span>Online</span>
+      <div class="logo" id="logoClear" title="Clear all" role="button" tabindex="0"><img
+          src="data:image/jpeg;base64,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"
+          alt="Medhavi Skills University"></div>
+      <div>
+        <h1>Gradesheet Verification &amp; Provisional Result Tool</h1>
+        <p>Upload Regular &amp; Improvement TRs per semester, pick the right sheet, and auto-generate a clean,
+          professional result workbook.</p>
+      </div>
+    </div>
+  </header>
+
+  <div class="wrap">
+
+    <!-- STEP 1: PER-SEMESTER UPLOADS -->
+    <div class="section-title"><span class="num">1</span>Upload TR per semester — Regular (left) &amp; Improvement
+      (right)</div>
+    <div id="semBlocks"></div>
+    <div class="panel">
+      <div class="rules">
+        <b>How it works:</b> for each semester, upload the <b>Regular TR</b> on the left and its <b>Improvement /
+          Supplementary</b> TR on the right (only if it had one).
+        A TR file can hold multiple sheets — after uploading, use the dropdown to pick the correct sheet.
+        <br><br>
+        <b>Comparison rule:</b> for every subject, the <b>higher</b> of Regular vs Improvement total is kept.
+        Example: <span class="rk">Reg 15 &amp; Imp 30 → 30</span> &nbsp; <span class="rk">Reg 16 &amp; Imp 12 →
+          16</span> &nbsp; <span class="rk">equal → either</span>.
+        A student passes overall only if <b>no subject in any semester is F</b> after this update.
+        <br><br>
+        <b>Withheld rule:</b> a <b>W</b> in the <b>Grace</b> column withholds the result — one W in one subject of one
+        semester is enough, in the regular or the improvement TR, and it applies <b>even when that paper is declared
+        P</b>. Withheld students are excluded from the Final Result (Provisional) sheet and reported in the
+        <b>Withheld</b> sheet instead.
+      </div>
+    </div>
+
+    <!-- STEP 2: RUN -->
+    <div class="section-title"><span class="num">2</span>Compare &amp; generate result</div>
+    <div class="panel">
+      <div class="actions">
+        <button class="primary" id="runBtn" disabled>Compare all semesters</button>
+        <button class="download" id="dlBtn" disabled>⬇ Download result workbook</button>
+        <button class="ghost" id="resetBtn">↺ Reset</button>
+      </div>
+      <div class="status" id="status"><span class="sdot"></span>Upload at least one Regular TR to begin.</div>
+      <div class="log" id="log"></div>
+    </div>
+
+    <!-- SUMMARY -->
+    <div class="summary" id="summary">
+      <div class="section-title">Provisional result overview</div>
+      <div class="cards">
+        <div class="stat total">
+          <div class="n" id="cTotal">0</div>
+          <div class="l">Students</div>
+        </div>
+        <div class="stat pass">
+          <div class="n" id="cPass">0</div>
+          <div class="l">Pass in all sem &amp; subjects</div>
+        </div>
+        <div class="stat fail">
+          <div class="n" id="cFail">0</div>
+          <div class="l">Not eligible for provisional</div>
+        </div>
+        <div class="stat impr">
+          <div class="n" id="cImpr">0</div>
+          <div class="l">Improved via supplementary</div>
+        </div>
+        <div class="stat withheld">
+          <div class="n" id="cWith">0</div>
+          <div class="l">Withheld (&ldquo;W&rdquo; in Grace)</div>
+        </div>
+        <div class="stat rev">
+          <div class="n" id="cRev">0</div>
+          <div class="l">Need manual review</div>
+        </div>
+      </div>
+      <div class="tablewrap">
+        <table id="resTable">
+          <thead></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="note">This is a preview. The downloadable workbook contains 8 sheets: <b>Regular</b>,
+        <b>Supplementary</b>, <b>Updated Marks</b>, <b>Final Result (Provisional)</b>, <b>Withheld</b>,
+        <b>Fail — No Provisional</b>, plus <b>Extracted Regular TR</b> and <b>Extracted Supplementary TR</b> holding
+        every value the tool read, with source sheet and row number, for manual checking.
+        <br><br>
+        <b>Withheld rule:</b> if a <b>W</b> appears in a <b>Grace</b> cell — in any semester, in any subject, in the
+        regular or the improvement TR, and even if that paper and every other paper is a <b>pass</b> — the student's
+        result is <b>withheld</b>. Those students are left out of <b>Final Result (Provisional)</b> and out of
+        <b>Fail — No Provisional</b>, and are listed instead in the <b>Withheld</b> sheet with enrolment, name, marks
+        and the exact subject(s) carrying the W.</div>
+    </div>
+
+    <div class="foot">All processing happens in your browser. No file leaves your device.</div>
+  </div>
+
+  <script>
+    /* ===== ENGINE START (tested in Node — do not edit without re-running tests) ===== */
+    /* ============================================================
+       ENGINE — pure functions, no DOM, no XLSX dependency.
+       Input is always an AOA (array of arrays) from a sheet.
+       Same concept as before: detect subject blocks, read Total +
+       Result per subject, compare Regular vs Improvement, keep the
+       better attempt, decide provisional eligibility.
+       ============================================================ */
+    var Engine = (function () {
+      'use strict';
+
+      /* ---------------- normalisers ---------------- */
+      function s(v) { return v == null ? '' : String(v); }
+      function trim(v) { return s(v).replace(/\s+/g, ' ').trim(); }
+      function normCode(v) { return s(v).toUpperCase().replace(/[^A-Z0-9]/g, ''); }
+      function normName(v) { return s(v).toLowerCase().replace(/[^a-z0-9]/g, ''); }
+
+      function normReg(v) {
+        var t = s(v).trim();
+        if (/^\d+\.0+$/.test(t)) t = t.replace(/\.0+$/, '');      // 240520400033.0 -> 240520400033
+        if (/^\d+(\.\d+)?e\+?\d+$/i.test(t)) {                    // 2.405204e+11
+          var n = Number(t); if (isFinite(n)) t = n.toFixed(0);
+        }
+        return t.toUpperCase().replace(/[\s\-\/]/g, '');
+      }
+
+      function num(v) {
+        if (v == null) return null;
+        if (typeof v === 'number') return isFinite(v) ? v : null;
+        var t = s(v).replace(/,/g, '').trim();
+        if (t === '' || t === '-' || t === '--') return null;
+        if (!/^[-+]?(\d+\.?\d*|\.\d+)$/.test(t)) return null;
+        var n = parseFloat(t);
+        return isFinite(n) ? n : null;
+      }
+
+      /* ---------------- WITHHELD marker ----------------
+         The Grace column normally carries a grace mark (a number). Some TRs
+         instead carry the letter "W" there, which means the result of that
+         paper is WITHHELD. A W withholds the student's whole result even when
+         the subject, the semester and every other semester are declared PASS.
+         One W anywhere — any semester, any subject, regular or improvement TR —
+         is enough.                                                            */
+      function graceFlag(v) {
+        var t = s(v).toUpperCase().replace(/[^A-Z]/g, '');
+        if (!t) return '';
+        if (t === 'W' || t === 'WH' || t === 'WITHHELD' || t === 'WITHELD' || t === 'WITHOLD' || t === 'WITHHOLD') return 'W';
+        return '';
+      }
+      function isWithheldGrace(v) { return graceFlag(v) === 'W'; }
+
+      var RESULT_MAP = {
+        P: 'P', PASS: 'P', PASSED: 'P', CLEAR: 'P', CLEARED: 'P',
+        F: 'F', FAIL: 'F', FAILED: 'F', RA: 'F', BACKLOG: 'F', DT: 'F', DETAINED: 'F', DEBARRED: 'F',
+        AB: 'AB', ABSENT: 'AB', A: 'AB', ABS: 'AB'
+      };
+      // 'P' | 'F' | 'AB' | null (blank) | raw token (unknown, kept for audit)
+      function normResult(v) {
+        var t = s(v).toUpperCase().replace(/[^A-Z]/g, '');
+        if (t === '') return null;
+        return RESULT_MAP[t] !== undefined ? RESULT_MAP[t] : t;
+      }
+
+      /* Status of a single attempt: 'P' | 'F' | 'NODATA'.
+         An explicit Result flag always wins; otherwise 40% of max marks. */
+      function classify(total, flagRaw, maxMarks) {
+        var f = normResult(flagRaw);
+        if (f === 'P') return 'P';
+        if (f === 'F') return 'F';
+        if (f === 'AB') return 'F';
+        if (total == null) return 'NODATA';
+        var max = maxMarks && maxMarks > 0 ? maxMarks : 100;
+        return (total * 100 >= max * 40 - 1e-6) ? 'P' : 'F';
+      }
+
+      /* Dice bigram similarity, used only as a last-resort subject matcher */
+      function similarity(a, b) {
+        if (!a || !b) return 0;
+        if (a === b) return 1;
+        if (a.length < 2 || b.length < 2) return a === b ? 1 : 0;
+        var m = {}, i, bg, hits = 0, total = 0;
+        for (i = 0; i < a.length - 1; i++) { bg = a.substr(i, 2); m[bg] = (m[bg] || 0) + 1; }
+        for (i = 0; i < b.length - 1; i++) {
+          bg = b.substr(i, 2);
+          if (m[bg] > 0) { m[bg]--; hits++; }
+        }
+        total = (a.length - 1) + (b.length - 1);
+        return (2 * hits) / total;
+      }
+
+      function isCodeLike(v) {
+        var t = trim(v).toUpperCase();
+        if (!t || t.length > 14) return false;
+        return /^[A-Z]{2,6}[ \-]?\d{2,5}[A-Z]?$/.test(t);
+      }
+
+      /* ---------------- layout detection ---------------- */
+
+      /* Sub-header row: the row carrying the per-subject column labels
+         (CWA / End Term / Grace / Total / Result / ...). */
+      function findHeaderRow(A, limit) {
+        var lim = Math.min(A.length, limit || 15), best = -1, bestScore = 0;
+        for (var r = 0; r < lim; r++) {
+          var row = A[r] || [], nRes = 0, nTot = 0, nAux = 0;
+          for (var c = 0; c < row.length; c++) {
+            var h = s(row[c]).toLowerCase();
+            if (!h) continue;
+            if (h.indexOf('result') >= 0) nRes++;
+            if (h.indexOf('total') >= 0) nTot++;
+            if (h.indexOf('cwa') >= 0 || h.indexOf('end term') >= 0 || h.indexOf('grace') >= 0) nAux++;
+          }
+          if (nRes > 0 && nTot > 0) {
+            var sc = nRes * 3 + nTot + nAux;
+            if (sc > bestScore) { bestScore = sc; best = r; }
+          }
+        }
+        return best;
+      }
+
+      /* Row holding subject codes: the row above the sub-header with the
+         most code-like tokens. Falls back to codes embedded in names. */
+      function findCodeRow(A, hdrIdx) {
+        var best = -1, bestCount = 0;
+        for (var r = 0; r < hdrIdx; r++) {
+          var row = A[r] || [], n = 0;
+          for (var c = 0; c < row.length; c++) if (isCodeLike(row[c])) n++;
+          if (n > bestCount) { bestCount = n; best = r; }
+        }
+        return bestCount > 0 ? best : -1;
+      }
+
+      /* Meta columns (Reg No / Name / Semester / Program / Batch). Detected from
+         labels first, then verified/recovered from the data itself. */
+      function findMetaCols(A, hdrIdx, dataStart) {
+        var cols = { reg: null, name: null, sem: null, program: null, batch: null };
+        var maxScan = Math.min(hdrIdx + 1, A.length);
+        for (var r = 0; r < maxScan; r++) {
+          var row = A[r] || [];
+          for (var c = 0; c < Math.min(row.length, 14); c++) {
+            var t = trim(row[c]).toLowerCase().replace(/[.:]/g, '');
+            if (!t) continue;
+            if (cols.reg == null && /^(reg\s*no|registration\s*(no|number)|enroll?ment\s*(no|number)|roll\s*no)$/.test(t)) cols.reg = c;
+            else if (cols.name == null && /^(name|student\s*name|name\s*of\s*student)$/.test(t)) cols.name = c;
+            else if (cols.sem == null && /^(sem|semester)$/.test(t)) cols.sem = c;
+            else if (cols.program == null && /^(program|programme|course|branch|department)$/.test(t)) cols.program = c;
+            else if (cols.batch == null && /^(batch|session|year)$/.test(t)) cols.batch = c;
+          }
+        }
+        // Recover Reg No from data shape when the label is missing/renamed
+        if (cols.reg == null) {
+          var bestCol = null, bestHits = 0;
+          for (var c2 = 0; c2 < 12; c2++) {
+            var hits = 0;
+            for (var r2 = dataStart; r2 < Math.min(A.length, dataStart + 60); r2++) {
+              var v = (A[r2] || [])[c2];
+              if (v != null && /^\d{6,}$/.test(normReg(v))) hits++;
+            }
+            if (hits > bestHits) { bestHits = hits; bestCol = c2; }
+          }
+          if (bestHits >= 2) cols.reg = bestCol;
+        }
+        if (cols.reg == null) cols.reg = 2;      // documented default layout
+        if (cols.name == null) cols.name = (cols.reg === 1 ? 0 : 1);
+        return cols;
+      }
+
+      function maxFromLabel(label) {
+        var m = s(label).match(/\((\d{1,4})\)/);
+        if (!m) return null;
+        var n = parseInt(m[1], 10);
+        return isFinite(n) && n > 0 ? n : null;
+      }
+
+      /* ---------------- sheet parsing ---------------- */
+      /* Returns {ok, reason, blocks, students, sumCol, layout, warnings} */
+      function parseSheet(A, opts) {
+        opts = opts || {};
+        var sheetName = opts.sheetName || '';
+        var warnings = [];
+        if (!A || A.length < 3) return { ok: false, reason: 'sheet has too few rows', warnings: warnings };
+
+        var hdrIdx = findHeaderRow(A);
+        if (hdrIdx < 0) return { ok: false, reason: 'no sub-header row with Total + Result found', warnings: warnings };
+        var hdr = A[hdrIdx] || [];
+        var dataStart = hdrIdx + 1;
+
+        var codeIdx = findCodeRow(A, hdrIdx);
+        var nameCandidates = [];
+        for (var rr = 0; rr < hdrIdx; rr++) if (rr !== codeIdx) nameCandidates.push(rr);
+        nameCandidates.sort(function (a, b) { return Math.abs(a - (codeIdx - 1)) - Math.abs(b - (codeIdx - 1)); });
+
+        /* --- locate block start columns --- */
+        var starts = [];
+        var scanRow = codeIdx >= 0 ? (A[codeIdx] || []) : [];
+        var widest = Math.max(hdr.length, scanRow.length);
+
+        function blockHasTotalResult(from, to) {
+          var hasT = false, hasR = false;
+          for (var k = from; k < to && k < hdr.length; k++) {
+            var h = s(hdr[k]).toLowerCase();
+            if (h.indexOf('total') >= 0) hasT = true;
+            if (h.indexOf('result') >= 0) hasR = true;
+          }
+          return hasT && hasR;
+        }
+
+        if (codeIdx >= 0) {
+          for (var c = 0; c < widest; c++) {
+            var raw = scanRow[c];
+            if (raw == null || trim(raw) === '') continue;
+            if (/^\d+$/.test(trim(raw))) continue;            // credits row artefacts
+            if (blockHasTotalResult(c, c + 15)) starts.push(c);
+          }
+        }
+        // Fallback: derive blocks straight from the 'Total' columns in the header row
+        if (!starts.length) {
+          for (var c3 = 0; c3 < hdr.length; c3++) {
+            if (s(hdr[c3]).toLowerCase().indexOf('total') >= 0 && blockHasTotalResult(c3, c3 + 6)) {
+              starts.push(Math.max(0, c3 - 3));
+            }
+          }
+          if (starts.length) warnings.push('Subject-code row not found in "' + sheetName + '" — blocks derived from Total/Result columns; verify the extracted sheets.');
+        }
+        if (!starts.length) return { ok: false, reason: 'no subject blocks detected', warnings: warnings };
+
+        /* --- build blocks with per-block column offsets --- */
+        var blocks = [];
+        for (var i = 0; i < starts.length; i++) {
+          var st = starts[i];
+          var end = (i + 1 < starts.length) ? starts[i + 1] : st + 15;
+          var off = { total: null, result: null, cwa: null, end: null, grace: null }, max = null;
+          for (var k = st; k < end && k < hdr.length; k++) {
+            var h = s(hdr[k]).toLowerCase();
+            if (!h) continue;
+            if (off.total == null && h.indexOf('total') >= 0) { off.total = k - st; max = maxFromLabel(hdr[k]); }
+            else if (off.result == null && h.indexOf('result') >= 0) off.result = k - st;
+            else if (off.cwa == null && (h.indexOf('cwa') >= 0 || h.indexOf('internal') >= 0)) off.cwa = k - st;
+            else if (off.end == null && h.indexOf('end') >= 0) off.end = k - st;
+            else if (off.grace == null && h.indexOf('grace') >= 0) off.grace = k - st;
+          }
+          if (off.total == null) off.total = 3;               // documented default layout
+          if (off.result == null) off.result = 4;
+
+          var codeRaw = codeIdx >= 0 ? trim(scanRow[st]) : '';
+          var nameRaw = '';
+          for (var nc = 0; nc < nameCandidates.length; nc++) {
+            var cand = trim((A[nameCandidates[nc]] || [])[st]);
+            if (cand && !isCodeLike(cand) && !/^\d+([-\/]\d+)*$/.test(cand)) { nameRaw = cand; break; }
+          }
+          if (!codeRaw && nameRaw) {
+            var m = nameRaw.match(/\(([A-Za-z]{2,6}[ \-]?\d{2,5}[A-Za-z]?)\)/);
+            codeRaw = m ? m[1] : ('SUBJ' + (i + 1));
+          }
+          /* Real right edge of this block. The tentative `end` for the LAST
+             block is a blind st+15 guess, which runs straight over the
+             SGPA / Remark / TOTAL / PERCENTAGE columns that sit just after it.
+             The sub-header row only carries labels for genuine subject columns,
+             so the last labelled column is the true end of the block.          */
+          var realEnd = st;
+          for (var ke = st; ke < end && ke < hdr.length; ke++) {
+            if (trim(hdr[ke]) !== '') realEnd = ke + 1;
+          }
+          if (realEnd <= st) realEnd = end;   // no labels at all -> keep the guess
+
+          blocks.push({
+            code: codeRaw, name: nameRaw, startCol: st, off: off,
+            endCol: realEnd,
+            max: max || 100,
+            key: normCode(codeRaw), nkey: normName(nameRaw)
+          });
+        }
+
+        var metaCols = findMetaCols(A, hdrIdx, dataStart);
+
+        /* --- summary columns (SGPA / Remark / TOTAL / PERCENTAGE) --- */
+        var sumCol = {};
+        /* A column is "inside a subject block" only when it really falls within
+           one. The previous guard blanked out EVERYTHING from the first block
+           start to (last block start + 15), which swallowed the SGPA, Remark and
+           TOTAL columns sitting immediately after the final subject — only
+           PERCENTAGE, landing just past that arbitrary edge, survived.          */
+        function insideBlock(sc) {
+          for (var bz = 0; bz < blocks.length; bz++) {
+            if (sc >= blocks[bz].startCol && sc < blocks[bz].endCol) return true;
+          }
+          return false;
+        }
+        /* Scan every row above the sub-header AND the sub-header row itself —
+           some TRs carry the summary labels on that line instead.              */
+        for (var hr = 0; hr <= hdrIdx; hr++) {
+          var srow = A[hr] || [];
+          for (var sc = 0; sc < srow.length; sc++) {
+            if (insideBlock(sc)) continue;   // ignore inside-block labels
+            var t2 = trim(srow[sc]).toLowerCase();
+            if (!t2) continue;
+            if (sumCol.sgpa == null && /^sgpa/.test(t2)) sumCol.sgpa = sc;
+            else if (sumCol.remark == null && /^remark/.test(t2)) sumCol.remark = sc;
+            else if (sumCol.pct == null && /^percentage|^percent/.test(t2)) sumCol.pct = sc;
+            else if (sumCol.total == null && /^total$/.test(t2)) sumCol.total = sc;
+          }
+        }
+
+        /* --- students --- */
+        var students = [], byReg = {};
+        for (var r3 = dataStart; r3 < A.length; r3++) {
+          var row = A[r3];
+          if (!row) continue;
+          var regv = normReg(row[metaCols.reg]);
+          if (!regv || !/\d/.test(regv)) continue;
+          if (/^(reg|registration|roll)/i.test(regv)) continue;
+
+          var subj = {}, anyMark = false;
+          for (var b = 0; b < blocks.length; b++) {
+            var bl = blocks[b];
+            var tot = num(row[bl.startCol + bl.off.total]);
+            var resRaw = row[bl.startCol + bl.off.result];
+            var rec = {
+              code: bl.code, name: bl.name, max: bl.max,
+              total: tot,
+              resultRaw: resRaw == null ? '' : trim(resRaw),
+              cwa: bl.off.cwa == null ? null : num(row[bl.startCol + bl.off.cwa]),
+              endTerm: bl.off.end == null ? null : num(row[bl.startCol + bl.off.end]),
+              endTermRaw: bl.off.end == null ? '' : trim(row[bl.startCol + bl.off.end]),
+              grace: bl.off.grace == null ? null : num(row[bl.startCol + bl.off.grace]),
+              graceRaw: bl.off.grace == null ? '' : trim(row[bl.startCol + bl.off.grace]),
+              sheet: sheetName, row: r3 + 1
+            };
+            rec.status = classify(rec.total, rec.resultRaw, bl.max);
+            rec.withheld = isWithheldGrace(rec.graceRaw);   // "W" in Grace -> result withheld
+            if (rec.total != null || rec.resultRaw !== '') anyMark = true;
+            subj[bl.key] = rec;
+          }
+          var nm = trim(row[metaCols.name]);
+          if (!anyMark && !nm) continue;                       // blank filler row
+
+          var stu = {
+            reg: regv,
+            name: nm,
+            sem: metaCols.sem == null ? '' : trim(row[metaCols.sem]),
+            batch: metaCols.batch == null ? '' : trim(row[metaCols.batch]),
+            program: metaCols.program == null ? '' : trim(row[metaCols.program]),
+            sgpa: sumCol.sgpa == null ? null : row[sumCol.sgpa],
+            pct: sumCol.pct == null ? null : row[sumCol.pct],
+            remark: sumCol.remark == null ? null : trim(row[sumCol.remark]),
+            grandTotal: sumCol.total == null ? null : row[sumCol.total],
+            subjects: subj,
+            sheet: sheetName, row: r3 + 1
+          };
+
+          if (byReg[regv]) {                                    // duplicate reg no in one sheet
+            warnings.push('Duplicate Reg. No. ' + regv + ' in "' + sheetName + '" (rows ' + byReg[regv].row + ' and ' + stu.row + ') — best attempt of the two kept.');
+            mergeStudent(byReg[regv], stu);
+          } else {
+            byReg[regv] = stu;
+            students.push(stu);
+          }
+        }
+
+        if (!students.length) return { ok: false, reason: 'no student rows found', warnings: warnings };
+
+        return {
+          ok: true, blocks: blocks, students: students, byReg: byReg, sumCol: sumCol,
+          layout: { headerRow: hdrIdx + 1, codeRow: codeIdx + 1, dataStartRow: dataStart + 1, metaCols: metaCols },
+          sheetName: sheetName, warnings: warnings
+        };
+      }
+
+      /* keep the better of two attempts of the same subject */
+      function betterAttempt(a, b) {
+        if (!a) return b;
+        if (!b) return a;
+        var ap = a.status === 'P', bp = b.status === 'P';
+        var keep;
+        if (ap !== bp) keep = ap ? a : b;
+        else {
+          var at = a.total == null ? -1 : a.total, bt = b.total == null ? -1 : b.total;
+          keep = bt > at ? b : a;
+        }
+        // a W on the discarded row still withholds the paper
+        if (a.withheld || b.withheld) {
+          keep.withheld = true;
+          if (!graceFlag(keep.graceRaw)) keep.graceRaw = (a.withheld ? a.graceRaw : b.graceRaw);
+        }
+        return keep;
+      }
+      function mergeStudent(target, extra) {
+        for (var k in extra.subjects) {
+          target.subjects[k] = target.subjects[k] ? betterAttempt(target.subjects[k], extra.subjects[k]) : extra.subjects[k];
+        }
+        if (!target.name && extra.name) target.name = extra.name;
+        if (!target.program && extra.program) target.program = extra.program;
+        return target;
+      }
+
+      /* Merge several parsed sheets (used for "All sheets (merge)") */
+      function mergeParsed(list) {
+        var out = null, warnings = [];
+        for (var i = 0; i < list.length; i++) {
+          var p = list[i];
+          if (!p || !p.ok) continue;
+          if (!out) {
+            out = {
+              ok: true, blocks: p.blocks.slice(), students: p.students.slice(), byReg: {},
+              sumCol: p.sumCol, layout: p.layout, sheetName: p.sheetName, warnings: (p.warnings || []).slice()
+            };
+            for (var q = 0; q < out.students.length; q++) out.byReg[out.students[q].reg] = out.students[q];
+            continue;
+          }
+          warnings = warnings.concat(p.warnings || []);
+          for (var b = 0; b < p.blocks.length; b++) {
+            var nb = p.blocks[b], seen = false;
+            for (var ob = 0; ob < out.blocks.length; ob++) {
+              if (out.blocks[ob].key === nb.key || (nb.nkey && out.blocks[ob].nkey === nb.nkey)) { seen = true; break; }
+            }
+            if (!seen) out.blocks.push(nb);
+          }
+          for (var st = 0; st < p.students.length; st++) {
+            var stu = p.students[st];
+            if (out.byReg[stu.reg]) mergeStudent(out.byReg[stu.reg], stu);
+            else { out.byReg[stu.reg] = stu; out.students.push(stu); }
+          }
+          out.sheetName += ' + ' + p.sheetName;
+        }
+        if (out) out.warnings = (out.warnings || []).concat(warnings);
+        return out;
+      }
+
+      /* ---------------- subject matching (the real fix) ----------------
+         Regular and Improvement TRs frequently carry DIFFERENT codes for the
+         same paper (e.g. CPP501 "Project Work - 1" vs CDP501 "Project work 1").
+         Match on code first, then on normalised name, then on close-name
+         similarity — every non-code match is reported for verification.      */
+      function matchSubjects(regBlocks, supBlocks) {
+        var map = {}, report = [];
+        var byCode = {}, byName = {}, nameDup = {};
+        for (var i = 0; i < regBlocks.length; i++) {
+          var rb = regBlocks[i];
+          if (rb.key) byCode[rb.key] = rb;
+          if (rb.nkey) {
+            if (byName[rb.nkey]) nameDup[rb.nkey] = true;
+            else byName[rb.nkey] = rb;
+          }
+        }
+        for (var j = 0; j < supBlocks.length; j++) {
+          var sb = supBlocks[j], hit = null, method = null, score = null;
+          if (sb.key && byCode[sb.key]) { hit = byCode[sb.key]; method = 'code'; }
+          if (!hit && sb.nkey && byName[sb.nkey] && !nameDup[sb.nkey]) { hit = byName[sb.nkey]; method = 'name'; }
+          if (!hit && sb.nkey) {
+            var best = null, bestScore = 0, tie = false;
+            for (var k = 0; k < regBlocks.length; k++) {
+              var cand = regBlocks[k];
+              if (!cand.nkey) continue;
+              var sim = similarity(sb.nkey, cand.nkey);
+              if (sim > bestScore + 1e-9) { bestScore = sim; best = cand; tie = false; }
+              else if (Math.abs(sim - bestScore) < 1e-9 && best && cand !== best) tie = true;
+            }
+            if (best && bestScore >= 0.86 && !tie) { hit = best; method = 'similar-name'; score = bestScore; }
+          }
+          map[sb.key || sb.nkey] = hit ? { block: hit, method: method } : null;
+          report.push({
+            supCode: sb.code, supName: sb.name,
+            regCode: hit ? hit.code : '', regName: hit ? hit.name : '',
+            method: hit ? method : 'unmatched',
+            score: score == null ? '' : Math.round(score * 100) / 100
+          });
+        }
+        return { map: map, report: report };
+      }
+
+      /* ---------------- decision for one subject ----------------
+         Displayed mark = the better attempt.
+         Status        = cleared if EITHER attempt is a pass (a re-sit that the
+                         university declared P clears the paper).
+         Any disagreement between the two attempts is flagged for review.     */
+      function decide(regA, supA) {
+        var attempts = [];
+        if (regA) attempts.push({ a: regA, src: 'Regular' });
+        if (supA) attempts.push({ a: supA, src: 'Supplementary' });
+        if (!attempts.length) return null;
+
+        var passing = attempts.filter(function (x) { return x.a.status === 'P'; });
+        var pick, status, review = '';
+
+        if (passing.length) {
+          pick = passing.reduce(function (m, x) {
+            return (x.a.total == null ? -1 : x.a.total) > (m.a.total == null ? -1 : m.a.total) ? x : m;
+          });
+          status = 'P';
+        } else {
+          pick = attempts.reduce(function (m, x) {
+            return (x.a.total == null ? -1 : x.a.total) > (m.a.total == null ? -1 : m.a.total) ? x : m;
+          });
+          status = attempts.some(function (x) { return x.a.status === 'F'; }) ? 'F' : 'NODATA';
+        }
+
+        if (attempts.length === 2) {
+          var hi = attempts.reduce(function (m, x) {
+            return (x.a.total == null ? -1 : x.a.total) > (m.a.total == null ? -1 : m.a.total) ? x : m;
+          });
+          if (hi !== pick) {
+            review = 'Higher mark (' + hi.src + ' ' + hi.a.total + ') is not a pass while ' +
+              pick.src + ' ' + pick.a.total + ' is declared P — passing attempt used.';
+          }
+          var unknownFlags = attempts.filter(function (x) {
+            var n = normResult(x.a.resultRaw);
+            return n !== null && n !== 'P' && n !== 'F' && n !== 'AB';
+          });
+          if (unknownFlags.length && !review) {
+            review = 'Unrecognised Result flag "' + unknownFlags[0].a.resultRaw + '" — decided on marks.';
+          }
+        } else {
+          var n1 = normResult(attempts[0].a.resultRaw);
+          if (n1 !== null && n1 !== 'P' && n1 !== 'F' && n1 !== 'AB') {
+            review = 'Unrecognised Result flag "' + attempts[0].a.resultRaw + '" — decided on marks.';
+          }
+        }
+
+        var improved = attempts.length === 2 && pick.src === 'Supplementary' &&
+          ((supA.total != null && regA.total != null && supA.total > regA.total) ||
+            (regA.status !== 'P' && supA.status === 'P'));
+
+        return {
+          regTotal: regA ? regA.total : null,
+          regRes: regA ? regA.resultRaw : '',
+          regStatus: regA ? regA.status : 'NORECORD',
+          supTotal: supA ? supA.total : null,
+          supRes: supA ? supA.resultRaw : '',
+          supStatus: supA ? supA.status : 'NORECORD',
+          supCode: supA ? supA.code : '',
+          supName: supA ? supA.name : '',
+          finalTotal: pick.a.total,
+          finalRes: status,
+          source: pick.src,
+          improved: improved,
+          review: review,
+          max: (regA || supA).max,
+          // "W" in the Grace column of EITHER attempt withholds this paper
+          withheld: !!((regA && regA.withheld) || (supA && supA.withheld)),
+          regGrace: regA ? regA.graceRaw : '',
+          supGrace: supA ? supA.graceRaw : ''
+        };
+      }
+
+      /* ---------------- full comparison across semesters ----------------
+         semInputs: [{sem, reg: parsed, sup: parsed|null}]                  */
+      function compare(semInputs) {
+        var semList = [], master = {}, logs = [], matchReports = {}, unmatched = [];
+        var supOnlyStudents = [];
+        var extractRegular = [], extractSup = [], appliedSup = {};
+
+        for (var i = 0; i < semInputs.length; i++) {
+          var it = semInputs[i];
+          if (!it) continue;
+          if (!it.reg || !it.reg.ok) {
+            logs.push({ level: 'err', msg: 'Sem-' + it.sem + ': the regular TR could not be read (' + ((it.reg && it.reg.reason) || 'not loaded') + ') — this semester was EXCLUDED from the result. Fix the file or pick the correct sheet before relying on this output.' });
+            continue;
+          }
+          if (it.sup && !it.sup.ok) {
+            logs.push({ level: 'err', msg: 'Sem-' + it.sem + ': an improvement TR was loaded but could not be read (' + it.sup.reason + ') — regular marks used alone for this semester.' });
+          }
+          var sem = it.sem;
+          semList.push(sem);
+
+          var rp = it.reg, sp = (it.sup && it.sup.ok) ? it.sup : null;
+          var matched = sp ? matchSubjects(rp.blocks, sp.blocks) : { map: {}, report: [] };
+          matchReports[sem] = matched.report;
+
+          for (var mr = 0; mr < matched.report.length; mr++) {
+            var row = matched.report[mr];
+            if (row.method === 'unmatched') {
+              unmatched.push({ sem: sem, code: row.supCode, name: row.supName });
+              logs.push({ level: 'err', msg: 'Sem-' + sem + ': improvement subject "' + row.supName + '" (' + row.supCode + ') does not match ANY regular subject — its marks were NOT applied. Check the subject code/name in either file.' });
+            } else if (row.method !== 'code') {
+              logs.push({ level: 'warn', msg: 'Sem-' + sem + ': improvement "' + row.supName + '" (' + row.supCode + ') matched regular "' + row.regName + '" (' + row.regCode + ') by ' + row.method + (row.score ? ' [' + row.score + ']' : '') + ' — codes differ, please verify.' });
+            }
+          }
+
+          // supplementary students that have no regular record for this semester
+          if (sp) {
+            for (var sx = 0; sx < sp.students.length; sx++) {
+              var ss = sp.students[sx];
+              if (!rp.byReg[ss.reg]) {
+                supOnlyStudents.push({ sem: sem, reg: ss.reg, name: ss.name, sheet: ss.sheet });
+              }
+            }
+          }
+
+          for (var q = 0; q < rp.students.length; q++) {
+            var st = rp.students[q];
+            if (!master[st.reg]) master[st.reg] = { reg: st.reg, name: st.name, program: st.program, sems: {} };
+            if (!master[st.reg].name && st.name) master[st.reg].name = st.name;
+            if (!master[st.reg].program && st.program) master[st.reg].program = st.program;
+
+            var supStu = sp ? sp.byReg[st.reg] : null;
+            if (supStu && supStu.name && st.name &&
+              normName(supStu.name) !== normName(st.name)) {
+              logs.push({ level: 'warn', msg: 'Sem-' + sem + ': Reg ' + st.reg + ' is "' + st.name + '" in the regular TR but "' + supStu.name + '" in the improvement TR — matched on Reg. No.; please verify.' });
+            }
+
+            var updated = {}, improvedAny = false, anyNotPass = false, reviews = [], withheldAny = false;
+            for (var b2 = 0; b2 < rp.blocks.length; b2++) {
+              var bl = rp.blocks[b2];
+              var regA = st.subjects[bl.key] || null;
+              var supA = null;
+              if (supStu) {
+                for (var mk in matched.map) {
+                  var mv = matched.map[mk];
+                  if (mv && mv.block.key === bl.key && supStu.subjects[mk]) { supA = supStu.subjects[mk]; break; }
+                }
+              }
+              var d = decide(regA, supA);
+              if (!d) continue;
+              d.code = bl.code; d.name = bl.name;
+              d.regSheet = regA ? regA.sheet : ''; d.regRow = regA ? regA.row : '';
+              d.supSheet = supA ? supA.sheet : ''; d.supRow = supA ? supA.row : '';
+              if (d.improved) improvedAny = true;
+              if (d.withheld) withheldAny = true;
+              if (d.finalRes !== 'P') anyNotPass = true;
+              if (d.review) reviews.push(bl.code + ': ' + d.review);
+              updated[bl.key] = d;
+              if (d.source === 'Supplementary' && supA) appliedSup[sem + '|' + st.reg + '|' + supA.code + '|' + supA.row] = true;
+
+              if (regA) {
+                extractRegular.push({
+                  sem: sem, reg: st.reg, name: st.name, program: st.program, batch: st.batch,
+                  sheet: regA.sheet, row: regA.row,
+                  code: regA.code, subject: regA.name,
+                  cwa: regA.cwa, endTerm: regA.endTerm, endTermRaw: regA.endTermRaw, grace: regA.grace,
+                  graceRaw: regA.graceRaw, withheld: !!regA.withheld,
+                  total: regA.total, max: regA.max,
+                  resultFile: regA.resultRaw, status: regA.status,
+                  sgpa: st.sgpa, pct: st.pct, remark: st.remark
+                });
+              }
+            }
+
+            for (var rv = 0; rv < reviews.length; rv++) {
+              logs.push({ level: 'warn', msg: 'Sem-' + sem + ' · ' + st.reg + ' — ' + reviews[rv] });
+            }
+
+            master[st.reg].sems[sem] = {
+              sgpa: st.sgpa, pct: st.pct, remark: st.remark, grandTotal: st.grandTotal,
+              subjects: updated, blocks: rp.blocks, improved: improvedAny, semPass: !anyNotPass,
+              withheld: withheldAny,
+              reviews: reviews, regRow: st.row, regSheet: st.sheet,
+              supRow: supStu ? supStu.row : '', supSheet: supStu ? supStu.sheet : ''
+            };
+          }
+
+          /* ---- dump everything read from the improvement TR, applied or not ---- */
+          if (sp) {
+            for (var sy = 0; sy < sp.students.length; sy++) {
+              var sstu = sp.students[sy];
+              var inReg = !!rp.byReg[sstu.reg];
+              for (var sb2 = 0; sb2 < sp.blocks.length; sb2++) {
+                var sbl = sp.blocks[sb2];
+                var srec = sstu.subjects[sbl.key];
+                if (!srec) continue;
+                var mv2 = matched.map[sbl.key] || null;
+                var applied = !!appliedSup[sem + '|' + sstu.reg + '|' + srec.code + '|' + srec.row];
+                var note = '';
+                if (!inReg) note = 'Student has no record in the regular TR — not applied.';
+                else if (!mv2) note = 'Subject could not be matched to any regular subject — not applied.';
+                else if (!applied) note = 'Regular attempt kept (not better than regular).';
+                extractSup.push({
+                  sem: sem, reg: sstu.reg, name: sstu.name, program: sstu.program, batch: sstu.batch,
+                  sheet: srec.sheet, row: srec.row,
+                  code: srec.code, subject: srec.name,
+                  cwa: srec.cwa, endTerm: srec.endTerm, endTermRaw: srec.endTermRaw, grace: srec.grace,
+                  graceRaw: srec.graceRaw, withheld: !!srec.withheld,
+                  total: srec.total, max: srec.max,
+                  resultFile: srec.resultRaw, status: srec.status,
+                  matchedCode: mv2 ? mv2.block.code : '', matchedSubject: mv2 ? mv2.block.name : '',
+                  matchMethod: mv2 ? mv2.method : 'unmatched',
+                  applied: applied ? 'YES' : 'NO', note: note
+                });
+              }
+            }
+          }
+        }
+
+        for (var sox = 0; sox < supOnlyStudents.length; sox++) {
+          var so = supOnlyStudents[sox];
+          logs.push({ level: 'warn', msg: 'Sem-' + so.sem + ': Reg ' + so.reg + ' (' + so.name + ') appears in the improvement TR but not in the regular TR — ignored. Check that the correct regular TR is loaded.' });
+        }
+
+        /* ---------------- WITHHELD register ----------------
+           Scans EVERY record the tool read (regular + improvement, applied or
+           not, matched or not) for a "W" in the Grace column. One W anywhere
+           withholds that student's entire result, pass or fail.               */
+        var withheldBy = {};
+        function collectWithheld(e, attempt) {
+          if (!e || !e.withheld) return;
+          if (!withheldBy[e.reg]) withheldBy[e.reg] = [];
+          withheldBy[e.reg].push({
+            sem: e.sem, attempt: attempt,
+            code: e.code, subject: e.subject,
+            cwa: e.cwa, endTerm: e.endTerm, endTermRaw: e.endTermRaw, graceRaw: e.graceRaw,
+            total: e.total, max: e.max,
+            resultFile: e.resultFile, status: e.status,
+            name: e.name, program: e.program, batch: e.batch,
+            sheet: e.sheet, row: e.row
+          });
+        }
+        for (var wr = 0; wr < extractRegular.length; wr++) collectWithheld(extractRegular[wr], 'Regular');
+        for (var wsx = 0; wsx < extractSup.length; wsx++) collectWithheld(extractSup[wsx], 'Improvement');
+
+        var rows = [];
+        for (var reg in master) {
+          var m = master[reg], allPass = true, failReasons = [], anyImproved = false, needsReview = [];
+          for (var si = 0; si < semList.length; si++) {
+            var sem2 = semList[si], sd = m.sems[sem2];
+            if (!sd) { allPass = false; failReasons.push('Sem-' + sem2 + ': no record'); continue; }
+            if (sd.improved) anyImproved = true;
+            if (sd.reviews.length) needsReview = needsReview.concat(sd.reviews.map(function (x) { return 'Sem-' + sem2 + ' ' + x; }));
+            if (!sd.semPass) {
+              allPass = false;
+              var bad = [];
+              for (var ck in sd.subjects) {
+                var v = sd.subjects[ck];
+                if (v.finalRes !== 'P') bad.push(v.code + '(' + (v.finalRes === 'NODATA' ? 'no data' : (v.finalTotal == null ? '-' : v.finalTotal)) + ')');
+              }
+              failReasons.push('Sem-' + sem2 + ': ' + bad.join(', '));
+            }
+          }
+          m.allPass = allPass; m.failReasons = failReasons;
+          m.anyImproved = anyImproved; m.needsReview = needsReview;
+
+          /* allPass  = academic outcome only (every subject cleared)
+             withheld = a "W" was found in a Grace column somewhere
+             eligible = what actually decides the provisional sheet            */
+          m.withheldSubjects = withheldBy[m.reg] || [];
+          m.withheld = m.withheldSubjects.length > 0;
+          m.eligible = allPass && !m.withheld;
+          if (m.withheld) {
+            var wtxt = m.withheldSubjects.map(function (x) {
+              return 'Sem-' + x.sem + ' ' + (x.code || '') + (x.subject ? ' ' + x.subject : '');
+            });
+            m.withheldReason = 'WITHHELD ("W" in Grace): ' + wtxt.join(', ');
+            logs.push({
+              level: 'warn',
+              msg: 'Reg ' + m.reg + ' (' + m.name + ') — "W" found in the Grace column for ' +
+                m.withheldSubjects.length + ' paper(s) [' + wtxt.join(', ') + ']. ' +
+                'Result WITHHELD' + (allPass ? ' even though every subject is a pass' : '') +
+                ' — excluded from the Final Result (Provisional) sheet and listed in the "Withheld" sheet.'
+            });
+          }
+          rows.push(m);
+        }
+        rows.sort(function (a, b) { return a.reg < b.reg ? -1 : a.reg > b.reg ? 1 : 0; });
+
+        /* withheld students that never made it into master (present only in an
+           improvement TR) still belong in the Withheld sheet                   */
+        var withheldExtra = [];
+        for (var wreg in withheldBy) {
+          if (master[wreg]) continue;
+          var d0 = withheldBy[wreg][0] || {};
+          withheldExtra.push({
+            reg: wreg, name: d0.name || '', program: d0.program || '',
+            allPass: false, withheld: true, eligible: false,
+            noMaster: true, withheldSubjects: withheldBy[wreg], sems: {}
+          });
+        }
+        withheldExtra.sort(function (a, b) { return a.reg < b.reg ? -1 : a.reg > b.reg ? 1 : 0; });
+
+        return {
+          semList: semList, rows: rows, master: master, logs: logs,
+          matchReports: matchReports, unmatched: unmatched, supOnly: supOnlyStudents,
+          extractRegular: extractRegular, extractSup: extractSup,
+          withheldBy: withheldBy, withheldExtra: withheldExtra
+        };
+      }
+
+      return {
+        // helpers
+        s: s, trim: trim, num: num, normCode: normCode, normName: normName, normReg: normReg,
+        normResult: normResult, classify: classify, similarity: similarity, isCodeLike: isCodeLike,
+        graceFlag: graceFlag, isWithheldGrace: isWithheldGrace,
+        // layout
+        findHeaderRow: findHeaderRow, findCodeRow: findCodeRow, findMetaCols: findMetaCols,
+        // core
+        parseSheet: parseSheet, mergeParsed: mergeParsed, matchSubjects: matchSubjects,
+        decide: decide, compare: compare, betterAttempt: betterAttempt
+      };
+    })();
+
+    /* ===== ENGINE END ===== */
+
+    /* ===== EXPORTER START ===== */
+    /* ============================================================
+       EXPORTER — builds the result workbook (no DOM, no download).
+       buildWorkbook(ExcelJS, RESULT) -> ExcelJS.Workbook
+       Sheets: Regular · Supplementary · Updated Marks ·
+               Final Result (Provisional) · Fail - No Provisional ·
+               Extracted Regular TR · Extracted Supplementary TR
+       ============================================================ */
+    var Exporter = (function () {
+      'use strict';
+
+      var XL = {
+        brand: 'FF14396B', brandLite: 'FF1F4E79', accent: 'FF2E75B6',
+        headText: 'FFFFFFFF',
+        band: 'FFF3F6FB', bandAlt: 'FFFFFFFF',
+        passBg: 'FFE4F5EA', passInk: 'FF1F7A4D',
+        failBg: 'FFFBE7E6', failInk: 'FFB4231A',
+        warnBg: 'FFFFF3DC', warnInk: 'FF9A6B00',
+        metaBg: 'FFEAF1FB', metaInk: 'FF3A536E',
+        border: 'FFD5DCE6',
+        titleBg: 'FF0F2A50'
+      };
+
+      function fmt(v) {
+        if (v == null || v === '') return '-';
+        var n = parseFloat(v);
+        return isNaN(n) ? v : Math.round(n * 100) / 100;
+      }
+      function thinBorder() {
+        var c = { style: 'thin', color: { argb: XL.border } };
+        return { top: c, left: c, bottom: c, right: c };
+      }
+      function styleHeaderRow(ws, rowNumber, ncols) {
+        var row = ws.getRow(rowNumber); row.height = 28;
+        for (var c = 1; c <= ncols; c++) {
+          var cell = row.getCell(c);
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: XL.brand } };
+          cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: XL.headText } };
+          cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+          cell.border = thinBorder();
+        }
+      }
+      function styleBody(ws, firstDataRow, ncols, opts) {
+        opts = opts || {};
+        var centerCols = opts.centerCols || {}, pfCols = opts.pfCols || {};
+        for (var r = firstDataRow; r <= ws.rowCount; r++) {
+          var row = ws.getRow(r); row.height = 20;
+          var banded = (r - firstDataRow) % 2 === 0;
+          for (var c = 1; c <= ncols; c++) {
+            var cell = row.getCell(c);
+            cell.border = thinBorder();
+            var isNum = typeof cell.value === 'number';
+            cell.alignment = {
+              vertical: 'middle',
+              horizontal: centerCols[c] ? 'center' : (isNum ? 'center' : 'left'),
+              wrapText: false
+            };
+            var bg = banded ? XL.band : XL.bandAlt;
+            var font = { name: 'Calibri', size: 10.5 };
+            var val = (cell.value && cell.value.result !== undefined) ? cell.value.result : cell.value;
+            if (pfCols[c]) {
+              var t = String(val == null ? '' : val).trim().toUpperCase();
+              if (t === 'P' || t === 'YES' || t === 'ELIGIBLE FOR PROVISIONAL') {
+                bg = XL.passBg; font = { name: 'Calibri', size: 10.5, bold: true, color: { argb: XL.passInk } };
+              } else if (t === 'F' || t === 'NO' || t === 'NOT ELIGIBLE') {
+                bg = XL.failBg; font = { name: 'Calibri', size: 10.5, bold: true, color: { argb: XL.failInk } };
+              } else if (t === 'NODATA' || t === 'NO DATA' || t === 'ABSENT' || t === 'NO RECORD') {
+                bg = XL.warnBg; font = { name: 'Calibri', size: 10.5, bold: true, color: { argb: XL.warnInk } };
+              }
+            }
+            cell.font = font;
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
+          }
+        }
+      }
+      function setWidths(ws, widths) {
+        for (var i = 0; i < widths.length; i++) ws.getColumn(i + 1).width = widths[i];
+      }
+      function addTitleBand(ws, title, ncols, subtitle) {
+        ws.mergeCells(1, 1, 1, ncols);
+        var t = ws.getCell(1, 1);
+        t.value = title;
+        t.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: XL.titleBg } };
+        t.font = { name: 'Calibri', size: 14, bold: true, color: { argb: 'FFFFFFFF' } };
+        t.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
+        ws.getRow(1).height = 30;
+        ws.mergeCells(2, 1, 2, ncols);
+        var sub = ws.getCell(2, 1);
+        sub.value = subtitle || ('Centre of Excellence · Provisional Result Verification · Generated ' + new Date().toLocaleDateString());
+        sub.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: XL.metaBg } };
+        sub.font = { name: 'Calibri', size: 9.5, italic: true, color: { argb: XL.metaInk } };
+        sub.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
+        ws.getRow(2).height = 18;
+      }
+      function setOf(arr) { var o = {}; for (var i = 0; i < arr.length; i++) o[arr[i]] = true; return o; }
+
+      function buildWorkbook(ExcelJS, RESULT) {
+        var rows = RESULT.rows, semList = RESULT.semList;
+        var TITLE_ROWS = 2;
+
+        /* union of subject keys per semester, in the regular TR's own order */
+        var semSubjects = {}, semMeta = {};
+        for (var i = 0; i < semList.length; i++) {
+          var s = semList[i], keys = [], meta = {};
+          for (var r = 0; r < rows.length; r++) {
+            var sd = rows[r].sems[s];
+            if (!sd || !sd.blocks) continue;
+            for (var b = 0; b < sd.blocks.length; b++) {
+              var bl = sd.blocks[b];
+              if (!meta[bl.key]) { meta[bl.key] = { code: bl.code, name: bl.name }; keys.push(bl.key); }
+            }
+          }
+          semSubjects[s] = keys; semMeta[s] = meta;
+        }
+        function subjLabel(s, key) {
+          var m = semMeta[s][key];
+          if (!m) return key;
+          return m.name ? m.name + ' (' + m.code + ')' : m.code;
+        }
+        function subjCode(s, key) { return (semMeta[s][key] || {}).code || key; }
+        function subjName(s, key) { return (semMeta[s][key] || {}).name || ''; }
+
+        var wb = new ExcelJS.Workbook();
+        wb.creator = 'CoE Verification Tool';
+        wb.created = new Date();
+
+        function layoutSheet(ws, title, head, data, opts) {
+          opts = opts || {};
+          var ncols = head.length;
+          addTitleBand(ws, title, ncols, opts.subtitle);
+          var headerRowNum = TITLE_ROWS + 1;
+          ws.addRow(head);
+          for (var d = 0; d < data.length; d++) ws.addRow(data[d]);
+          styleHeaderRow(ws, headerRowNum, ncols);
+          styleBody(ws, headerRowNum + 1, ncols, opts);
+          ws.views = [{ state: 'frozen', xSplit: opts.freezeCols == null ? 2 : opts.freezeCols, ySplit: headerRowNum, showGridLines: false }];
+          ws.autoFilter = { from: { row: headerRowNum, column: 1 }, to: { row: headerRowNum, column: ncols } };
+          if (opts.widths) setWidths(ws, opts.widths);
+          return headerRowNum;
+        }
+
+        /* ---------- Sheet 1: Regular ---------- */
+        (function () {
+          var ws = wb.addWorksheet('Regular', { views: [{ showGridLines: false }] });
+          var head = ['Reg. No.', 'Name', 'Program'], center = [];
+          for (var i = 0; i < semList.length; i++) {
+            var s = semList[i];
+            for (var k = 0; k < semSubjects[s].length; k++) { head.push('S' + s + ': ' + subjLabel(s, semSubjects[s][k])); center.push(head.length); }
+            head.push('S' + s + ' SGPA (Regular TR)'); center.push(head.length);
+            head.push('S' + s + ' % (Regular TR)'); center.push(head.length);
+            head.push('S' + s + ' Remark (Regular TR)'); center.push(head.length);
+          }
+          var data = [];
+          for (var r = 0; r < rows.length; r++) {
+            var row = [rows[r].reg, rows[r].name, rows[r].program];
+            for (var j = 0; j < semList.length; j++) {
+              var s2 = semList[j], sd = rows[r].sems[s2];
+              for (var k2 = 0; k2 < semSubjects[s2].length; k2++) {
+                var v = sd && sd.subjects[semSubjects[s2][k2]];
+                row.push(v && v.regTotal != null ? v.regTotal : '');
+              }
+              row.push(sd ? fmt(sd.sgpa) : '', sd ? fmt(sd.pct) : '', sd ? (sd.remark || '') : '');
+            }
+            data.push(row);
+          }
+          var widths = [16, 26, 22];
+          for (var w = 3; w < head.length; w++) widths.push(16);
+          layoutSheet(ws, 'REGULAR TERM RECORDS (AS READ FROM THE REGULAR TR)', head, data,
+            { centerCols: setOf(center), widths: widths, freezeCols: 2 });
+        })();
+
+        /* ---------- Sheet 2: Supplementary comparison ---------- */
+        (function () {
+          var ws = wb.addWorksheet('Supplementary', { views: [{ showGridLines: false }] });
+          var head = ['Reg. No.', 'Name', 'Sem', 'Subject Name', 'Regular Code', 'Improvement Code',
+            'Regular Mark', 'Improvement Mark', 'Final Mark', 'Source Used', 'Final Result', 'Needs Review'];
+          var data = [];
+          for (var r = 0; r < rows.length; r++) {
+            for (var i = 0; i < semList.length; i++) {
+              var s = semList[i], sd = rows[r].sems[s];
+              if (!sd) continue;
+              for (var k = 0; k < semSubjects[s].length; k++) {
+                var key = semSubjects[s][k], v = sd.subjects[key];
+                if (!v || v.supTotal == null) continue;
+                data.push([rows[r].reg, rows[r].name, 'Sem-' + s, v.name || subjName(s, key),
+                v.code || subjCode(s, key), v.supCode || '',
+                v.regTotal == null ? '-' : v.regTotal, v.supTotal, v.finalTotal == null ? '-' : v.finalTotal,
+                v.source, v.finalRes === 'NODATA' ? 'NO DATA' : v.finalRes, v.review || '']);
+              }
+            }
+          }
+          /* students who appear ONLY in the improvement / supplementary TR
+             (no record at all in the regular TR) are listed here too, with the
+             regular code / mark columns marked accordingly                     */
+          var NO_REG_TXT = 'No such student marks / code found in Regular TR';
+          var supOnlyRows = [];
+          var exSup = RESULT.extractSup || [];
+          for (var e = 0; e < exSup.length; e++) {
+            var es = exSup[e];
+            if (!es || RESULT.master[es.reg]) continue;   // handled in the loop above
+            if (es.total == null) continue;               // no supplementary mark
+            supOnlyRows.push([es.reg, es.name || '', 'Sem-' + es.sem,
+              es.subject || es.matchedSubject || '',
+              NO_REG_TXT, es.code || '',
+              NO_REG_TXT, es.total, es.total,
+              'Supplementary',
+              es.status === 'NODATA' ? 'NO DATA' : (es.status || ''),
+              'Student has no record in the Regular TR — supplementary marks shown for reference only; not applied to any final result.']);
+          }
+          supOnlyRows.sort(function (a, b) {
+            if (a[0] !== b[0]) return a[0] < b[0] ? -1 : 1;
+            if (a[2] !== b[2]) return a[2] < b[2] ? -1 : 1;
+            return a[5] < b[5] ? -1 : a[5] > b[5] ? 1 : 0;
+          });
+          for (var so = 0; so < supOnlyRows.length; so++) data.push(supOnlyRows[so]);
+
+          if (!data.length) data.push(['—', 'No improvement marks were applied', '', '', '', '', '', '', '', '', '', '']);
+          layoutSheet(ws, 'IMPROVEMENT / SUPPLEMENTARY COMPARISON (BEST ATTEMPT KEPT)', head, data,
+            {
+              centerCols: setOf([3, 5, 6, 7, 8, 9, 10, 11]), pfCols: setOf([11]),
+              widths: [16, 26, 9, 30, 34, 16, 34, 16, 12, 15, 13, 46], freezeCols: 2
+            });
+        })();
+
+        /* ---------- Sheet 3: Updated Marks (COUNTIF remark) ---------- */
+        (function () {
+          var ws = wb.addWorksheet('Updated Marks', { views: [{ showGridLines: false }] });
+          var head = ['Reg. No.', 'Name'], i, k, s;
+          for (i = 0; i < semList.length; i++) {
+            s = semList[i];
+            for (k = 0; k < semSubjects[s].length; k++) head.push('S' + s + ': ' + subjLabel(s, semSubjects[s][k]));
+          }
+          var pfStart = head.length;
+          for (i = 0; i < semList.length; i++) {
+            s = semList[i];
+            for (k = 0; k < semSubjects[s].length; k++) head.push('S' + s + ': ' + subjLabel(s, semSubjects[s][k]) + ' P/F');
+          }
+          head.push('Updated Remark');
+
+          var data = [];
+          for (var r = 0; r < rows.length; r++) {
+            var row = [rows[r].reg, rows[r].name];
+            for (i = 0; i < semList.length; i++) {
+              s = semList[i];
+              for (k = 0; k < semSubjects[s].length; k++) {
+                var v = rows[r].sems[s] && rows[r].sems[s].subjects[semSubjects[s][k]];
+                row.push(v && v.finalTotal != null ? v.finalTotal : '');
+              }
+            }
+            for (i = 0; i < semList.length; i++) {
+              s = semList[i];
+              for (k = 0; k < semSubjects[s].length; k++) {
+                var v2 = rows[r].sems[s] && rows[r].sems[s].subjects[semSubjects[s][k]];
+                row.push(v2 ? (v2.finalRes === 'NODATA' ? 'NO DATA' : v2.finalRes) : '');
+              }
+            }
+            row.push('');
+            data.push(row);
+          }
+
+          var ncols = head.length, center = [], pf = [];
+          for (var c = 3; c <= ncols; c++) center.push(c);
+          for (var c2 = pfStart + 1; c2 <= ncols; c2++) pf.push(c2);
+          var widths = [16, 26];
+          for (var w = 2; w < ncols; w++) widths.push(15);
+          var headerRowNum = layoutSheet(ws, 'UPDATED MARKS (BEST OF REGULAR / IMPROVEMENT)', head, data,
+            { centerCols: setOf(center), pfCols: setOf(pf), widths: widths, freezeCols: 2 });
+
+          var colL = function (n) { return ws.getColumn(n).letter; };
+          for (var d = 0; d < data.length; d++) {
+            var excelRow = headerRowNum + 1 + d;
+            var rng = colL(pfStart + 1) + excelRow + ':' + colL(ncols - 1) + excelRow;
+            var addr = colL(ncols) + excelRow;
+            var isP = data[d].slice(pfStart, ncols - 1).every(function (x) { return String(x) === 'P'; });
+            ws.getCell(addr).value = { formula: 'IF(COUNTIF(' + rng + ',"P")=COLUMNS(' + rng + '),"P","F")', result: isP ? 'P' : 'F' };
+            var cell = ws.getCell(addr);
+            cell.alignment = { vertical: 'middle', horizontal: 'center' };
+            cell.border = thinBorder();
+            cell.font = { name: 'Calibri', size: 10.5, bold: true, color: { argb: isP ? XL.passInk : XL.failInk } };
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: isP ? XL.passBg : XL.failBg } };
+          }
+        })();
+
+        /* ---------- Sheet 4: Final Result (Provisional) ---------- */
+        (function () {
+          var ws = wb.addWorksheet('Final Result (Provisional)', { views: [{ showGridLines: false }] });
+          var head = ['Reg. No.', 'Name', 'Program'];
+          for (var i = 0; i < semList.length; i++) head.push('Sem-' + semList[i] + ' Result');
+          head.push('Pass in ALL Sem & Subjects', 'Provisional Eligibility', 'Needs Manual Review');
+          var data = [], nWithheld = 0;
+          for (var r = 0; r < rows.length; r++) {
+            if (rows[r].withheld) { nWithheld++; continue; }   // "W" in Grace -> see the Withheld sheet
+            var row = [rows[r].reg, rows[r].name, rows[r].program];
+            for (var j = 0; j < semList.length; j++) {
+              var sd = rows[r].sems[semList[j]];
+              row.push(sd ? (sd.semPass ? 'P' : 'F') : 'NO RECORD');
+            }
+            row.push(rows[r].allPass ? 'YES' : 'NO',
+              rows[r].allPass ? 'ELIGIBLE FOR PROVISIONAL' : 'NOT ELIGIBLE',
+              rows[r].needsReview.length ? rows[r].needsReview.join(' | ') : '');
+            data.push(row);
+          }
+          if (!data.length) data.push(['—', 'No student qualifies for this sheet', '', '', '', '', '']
+            .slice(0, head.length));
+          var ncols = head.length, center = [];
+          for (var c = 4; c <= ncols - 1; c++) center.push(c);
+          var widths = [16, 26, 24];
+          for (var w = 0; w < semList.length; w++) widths.push(14);
+          widths.push(24, 26, 50);
+          layoutSheet(ws, 'FINAL PROVISIONAL RESULT', head, data,
+            {
+              centerCols: setOf(center), pfCols: setOf(center), widths: widths, freezeCols: 2,
+              subtitle: 'Centre of Excellence · Provisional Result Verification · Generated ' + new Date().toLocaleDateString() +
+                ' · ' + nWithheld + ' student(s) with a "W" in the Grace column are WITHHELD and deliberately excluded from this sheet — see the "Withheld" sheet'
+            });
+        })();
+
+        /* ---------- Sheet 5: Withheld ("W" in the Grace column) ----------
+           One row per withheld paper. A student appears here — and NOT in the
+           Final Result (Provisional) sheet — whenever a "W" sits in a Grace
+           cell, in any semester, in any subject, in the regular or the
+           improvement TR, whether that paper passed or failed.                */
+        (function () {
+          var ws = wb.addWorksheet('Withheld', { views: [{ showGridLines: false }] });
+          var head = ['Enrolment / Reg. No.', 'Name', 'Program', 'Semester',
+            'Subject Code', 'Subject Name', 'CWA', 'End Term', 'Grace', 'Total Marks', 'Max Marks',
+            'Result in TR', 'Paper Status', 'Found In', 'Source Sheet', 'Source Row',
+            'Withheld Papers (this student)', 'Academic Status (if released)'];
+
+          var all = rows.concat(RESULT.withheldExtra || []);
+          var data = [], nStudents = 0;
+          for (var r = 0; r < all.length; r++) {
+            var stu = all[r];
+            if (!stu.withheld || !stu.withheldSubjects || !stu.withheldSubjects.length) continue;
+            nStudents++;
+            var count = stu.withheldSubjects.length;
+            var academic = stu.noMaster
+              ? 'NO REGULAR RECORD — verify'
+              : (stu.allPass ? 'Would PASS all sem & subjects' : 'Would FAIL: ' + (stu.failReasons || []).join(' | '));
+            for (var k = 0; k < count; k++) {
+              var w = stu.withheldSubjects[k];
+              data.push([
+                stu.reg, stu.name || w.name || '', stu.program || w.program || '',
+                'Sem-' + w.sem,
+                w.code || '', w.subject || '',
+                w.cwa == null ? '' : w.cwa,
+                w.endTerm == null ? (w.endTermRaw || '') : w.endTerm,
+                w.graceRaw || 'W',
+                w.total == null ? '' : w.total,
+                w.max == null ? '' : w.max,
+                w.resultFile === '' || w.resultFile == null ? '(blank)' : w.resultFile,
+                w.status === 'NODATA' ? 'NO DATA' : w.status,
+                w.attempt, w.sheet || '', w.row || '',
+                count, academic
+              ]);
+            }
+          }
+          if (!data.length) {
+            data.push(['—', 'No "W" found in any Grace column — no result is withheld',
+              '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '']);
+          }
+          var headerRowNum = layoutSheet(ws, 'WITHHELD RESULTS — "W" IN THE GRACE COLUMN', head, data,
+            {
+              centerCols: setOf([1, 4, 5, 7, 8, 9, 10, 11, 12, 13, 14, 16, 17]),
+              pfCols: setOf([13]),
+              widths: [20, 26, 24, 11, 14, 32, 10, 11, 9, 12, 11, 15, 14, 14, 22, 11, 14, 46],
+              freezeCols: 2,
+              subtitle: nStudents + ' student(s) withheld · a "W" in Grace withholds the whole result even when the paper, ' +
+                'the semester and every other semester are declared PASS · these students are excluded from ' +
+                '"Final Result (Provisional)" and from "Fail - No Provisional"'
+            });
+          for (var d = 0; d < data.length; d++) {
+            ws.getCell(headerRowNum + 1 + d, 18).alignment = { vertical: 'middle', horizontal: 'left', wrapText: true };
+            var g = ws.getCell(headerRowNum + 1 + d, 9);
+            g.font = { name: 'Calibri', size: 10.5, bold: true, color: { argb: XL.warnInk } };
+            g.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: XL.warnBg } };
+          }
+        })();
+
+        /* ---------- Sheet 6: Fail — No Provisional ---------- */
+        (function () {
+          var ws = wb.addWorksheet('Fail - No Provisional', { views: [{ showGridLines: false }] });
+          var head = ['Reg. No.', 'Name', 'Failed Semester', 'Failed Subjects (name, code & final mark)',
+            'Sem SGPA (Regular TR)', 'Sem % (Regular TR)', 'Sem Remark (Regular TR)'];
+          var data = [];
+          for (var r = 0; r < rows.length; r++) {
+            if (rows[r].allPass) continue;
+            if (rows[r].withheld) continue;      // withheld -> reported in the "Withheld" sheet instead
+            for (var i = 0; i < semList.length; i++) {
+              var s = semList[i], sd = rows[r].sems[s];
+              if (!sd) { data.push([rows[r].reg, rows[r].name, 'Sem-' + s, 'NO RECORD IN REGULAR TR', '', '', '']); continue; }
+              if (sd.semPass) continue;
+              var failed = [];
+              for (var k = 0; k < semSubjects[s].length; k++) {
+                var v = sd.subjects[semSubjects[s][k]];
+                if (!v || v.finalRes === 'P') continue;
+                var nm = v.name || subjName(s, semSubjects[s][k]);
+                failed.push((nm ? nm + ' ' : '') + '(' + (v.code || subjCode(s, semSubjects[s][k])) + ') ' +
+                  (v.finalRes === 'NODATA' ? 'NO DATA' : (v.finalTotal == null ? '-' : v.finalTotal)));
+              }
+              data.push([rows[r].reg, rows[r].name, 'Sem-' + s, failed.join(', '),
+              fmt(sd.sgpa), fmt(sd.pct), sd.remark || 'F']);
+            }
+          }
+          if (!data.length) data.push(['—', 'All students are eligible for provisional', '', '', '', '', '']);
+          var headerRowNum = layoutSheet(ws, 'STUDENTS NOT ELIGIBLE FOR PROVISIONAL', head, data,
+            { centerCols: setOf([3, 5, 6, 7]), widths: [16, 26, 16, 60, 20, 20, 22], freezeCols: 2 });
+          for (var d = 0; d < data.length; d++) {
+            ws.getCell(headerRowNum + 1 + d, 4).alignment = { vertical: 'middle', horizontal: 'left', wrapText: true };
+          }
+        })();
+
+        /* ---------- Sheet 6: Extracted Regular TR ---------- */
+        (function () {
+          var ws = wb.addWorksheet('Extracted Regular TR', { views: [{ showGridLines: false }] });
+          var head = ['Sem', 'Reg. No.', 'Name', 'Program', 'Batch', 'Source Sheet', 'Source Row',
+            'Subject Code', 'Subject Name', 'CWA', 'End Term', 'Grace', 'Total', 'Max Marks',
+            'Result (as in file)', 'Status (computed)', 'SGPA (file)', '% (file)', 'Remark (file)', 'Withheld?'];
+          var src = RESULT.extractRegular || [], data = [];
+          for (var i = 0; i < src.length; i++) {
+            var e = src[i];
+            data.push(['Sem-' + e.sem, e.reg, e.name, e.program, e.batch, e.sheet, e.row,
+            e.code, e.subject,
+            e.cwa == null ? '' : e.cwa, e.endTerm == null ? '' : e.endTerm,
+            e.graceRaw ? e.graceRaw : (e.grace == null ? '' : e.grace),
+            e.total == null ? '' : e.total, e.max,
+            e.resultFile === '' ? '(blank)' : e.resultFile,
+            e.status === 'NODATA' ? 'NO DATA' : e.status,
+            fmt(e.sgpa), fmt(e.pct), e.remark || '', e.withheld ? 'WITHHELD' : '']);
+          }
+          if (!data.length) data.push(['—', 'No regular TR data was extracted', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '']);
+          layoutSheet(ws, 'EXTRACTED REGULAR TR DATA (EVERY VALUE THE TOOL READ — FOR MANUAL CHECKING)', head, data,
+            {
+              centerCols: setOf([1, 7, 8, 10, 11, 12, 13, 14, 15, 16, 17, 18, 20]), pfCols: setOf([16]),
+              widths: [8, 16, 24, 22, 12, 22, 11, 14, 32, 10, 11, 9, 10, 11, 17, 17, 12, 12, 14, 13], freezeCols: 3
+            });
+        })();
+
+        /* ---------- Sheet 7: Extracted Supplementary TR ---------- */
+        (function () {
+          var ws = wb.addWorksheet('Extracted Supplementary TR', { views: [{ showGridLines: false }] });
+          var head = ['Sem', 'Reg. No.', 'Name', 'Program', 'Batch', 'Source Sheet', 'Source Row',
+            'Subject Code', 'Subject Name', 'CWA', 'End Term', 'Grace', 'Total', 'Max Marks',
+            'Result (as in file)', 'Status (computed)',
+            'Matched Regular Code', 'Matched Regular Subject', 'Match Method', 'Applied to Final', 'Withheld?', 'Note'];
+          var src = RESULT.extractSup || [], data = [];
+          for (var i = 0; i < src.length; i++) {
+            var e = src[i];
+            data.push(['Sem-' + e.sem, e.reg, e.name, e.program, e.batch, e.sheet, e.row,
+            e.code, e.subject,
+            e.cwa == null ? '' : e.cwa, e.endTerm == null ? '' : e.endTerm,
+            e.graceRaw ? e.graceRaw : (e.grace == null ? '' : e.grace),
+            e.total == null ? '' : e.total, e.max,
+            e.resultFile === '' ? '(blank)' : e.resultFile,
+            e.status === 'NODATA' ? 'NO DATA' : e.status,
+            e.matchedCode, e.matchedSubject, e.matchMethod, e.applied, e.withheld ? 'WITHHELD' : '', e.note]);
+          }
+          if (!data.length) data.push(['—', 'No improvement / supplementary TR was loaded', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '']);
+          layoutSheet(ws, 'EXTRACTED IMPROVEMENT / SUPPLEMENTARY TR DATA (EVERY VALUE THE TOOL READ)', head, data,
+            {
+              centerCols: setOf([1, 7, 8, 10, 11, 12, 13, 14, 15, 16, 17, 19, 20, 21]), pfCols: setOf([16, 20]),
+              widths: [8, 16, 24, 22, 12, 26, 11, 14, 30, 10, 11, 9, 10, 11, 17, 17, 18, 30, 14, 15, 13, 46], freezeCols: 3
+            });
+        })();
+
+        return wb;
+      }
+
+      return { buildWorkbook: buildWorkbook, XL: XL, fmt: fmt };
+    })();
+
+    /* ===== EXPORTER END ===== */
+
+    /* ===== UI START ===== */
+    /* ============================================================
+       UI LAYER — file handling, rendering, download.
+       All parsing / comparison logic lives in Engine (above).
+       ============================================================ */
+    const NSEM = 8;
+    const reg = {};   // sem -> {file, wb, sheet}
+    const sup = {};   // sem -> {file, wb, sheet}
+    let RESULT = null;
+
+    const ALL_SHEETS = '__ALL__';
+
+    function esc(v) {
+      return String(v == null ? '' : v)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+    function aoaOf(wb, name) {
+      return XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, defval: null });
+    }
+
+    /* pick the sheet that most looks like a term record */
+    function guessSheet(wb) {
+      for (const n of wb.SheetNames) if (n.trim().toUpperCase() === 'TR') return n;
+      let best = wb.SheetNames[0], bestScore = -1;
+      for (const n of wb.SheetNames) {
+        const A = aoaOf(wb, n);
+        if (A.length < 4) continue;
+        const hi = Engine.findHeaderRow(A);
+        if (hi < 0) continue;
+        let score = 0;
+        (A[hi] || []).forEach(c => { if (c && String(c).toLowerCase().includes('result')) score++; });
+        if (score > bestScore) { bestScore = score; best = n; }
+      }
+      return best;
+    }
+
+    /* parse whichever sheet(s) the user selected for one upload slot */
+    function parsePick(entry) {
+      if (!entry) return null;
+      if (entry.sheet === ALL_SHEETS) {
+        const list = [];
+        for (const n of entry.wb.SheetNames) {
+          const p = Engine.parseSheet(aoaOf(entry.wb, n), { sheetName: n });
+          if (p.ok) list.push(p);
+        }
+        const merged = Engine.mergeParsed(list);
+        return merged || { ok: false, reason: 'no readable term-record sheet in this file' };
+      }
+      return Engine.parseSheet(aoaOf(entry.wb, entry.sheet), { sheetName: entry.sheet });
+    }
+
+    /* ---------- one upload cell (drop box + sheet dropdown) ---------- */
+    function buildCell(store, s, kind) {
+      const cell = document.createElement('div');
+      cell.className = 'cell ' + (kind === 'reg' ? 'reglbl' : 'suplbl');
+      const title = kind === 'reg' ? 'Regular TR' : 'Improvement / Supplementary';
+      cell.innerHTML = `
+    <div class="celllbl">${title}</div>
+    <label class="drop">
+      <span class="clr" title="Remove">✕</span>
+      <span class="lbl">${kind === 'reg' ? 'Upload Regular' : 'Upload Improvement'}</span>
+      <span class="fname"></span>
+      <input type="file" accept=".xlsx,.xls,.xlsm">
+    </label>
+    <div class="sheetsel">
+      <label>Select sheet from this file:</label>
+      <select></select>
+    </div>`;
+
+      const box = cell.querySelector('.drop');
+      const input = cell.querySelector('input');
+      const fname = cell.querySelector('.fname');
+      const clr = cell.querySelector('.clr');
+      const selWrap = cell.querySelector('.sheetsel');
+      const select = cell.querySelector('select');
+
+      input.addEventListener('change', e => {
+        const f = e.target.files[0]; if (!f) return;
+        readWB(f).then(wb => {
+          const chosen = guessSheet(wb);
+          store[s] = { file: f, wb, sheet: chosen };
+          box.classList.add('filled'); fname.textContent = f.name;
+          let opts = wb.SheetNames.map(n =>
+            `<option value="${esc(n)}"${n === chosen ? ' selected' : ''}>${esc(n)}</option>`).join('');
+          if (wb.SheetNames.length > 1) {
+            opts = `<option value="${ALL_SHEETS}">★ All sheets (merge every program sheet)</option>` + opts;
+          }
+          select.innerHTML = opts;
+          selWrap.classList.add('show');
+          refresh();
+        }).catch(err => { alert('Could not read ' + f.name + ': ' + err.message); });
+      });
+
+      select.addEventListener('change', () => { if (store[s]) store[s].sheet = select.value; });
+
+      clr.addEventListener('click', ev => {
+        ev.preventDefault(); ev.stopPropagation();
+        delete store[s]; box.classList.remove('filled'); fname.textContent = ''; input.value = '';
+        select.innerHTML = ''; selWrap.classList.remove('show');
+        refresh();
+      });
+      ['dragover', 'dragenter'].forEach(t => box.addEventListener(t, e => { e.preventDefault(); box.classList.add('hot'); }));
+      ['dragleave', 'drop'].forEach(t => box.addEventListener(t, e => { e.preventDefault(); box.classList.remove('hot'); }));
+      box.addEventListener('drop', e => {
+        const f = e.dataTransfer.files[0];
+        if (f) { input.files = e.dataTransfer.files; input.dispatchEvent(new Event('change')); }
+      });
+      return cell;
+    }
+
+    function buildSemBlocks() {
+      const host = document.getElementById('semBlocks');
+      for (let s = 1; s <= NSEM; s++) {
+        const block = document.createElement('div');
+        block.className = 'semblock';
+        block.innerHTML = `
+      <div class="semhead">
+        <span class="tag">SEM-${s}</span>
+        <h3>Semester ${s} term records</h3>
+        <span class="hint">◀ Regular &nbsp;·&nbsp; Improvement ▶</span>
+      </div>
+      <div class="semrow"></div>`;
+        const row = block.querySelector('.semrow');
+        row.appendChild(buildCell(reg, s, 'reg'));
+        row.appendChild(buildCell(sup, s, 'sup'));
+        host.appendChild(block);
+      }
+    }
+    buildSemBlocks();
+
+    function readWB(file) {
+      return new Promise((res, rej) => {
+        const fr = new FileReader();
+        fr.onload = e => { try { res(XLSX.read(new Uint8Array(e.target.result), { type: 'array' })); } catch (err) { rej(err); } };
+        fr.onerror = () => rej(new Error('read failed'));
+        fr.readAsArrayBuffer(file);
+      });
+    }
+
+    function refresh() {
+      const nReg = Object.keys(reg).length;
+      document.getElementById('runBtn').disabled = nReg === 0;
+      const st = document.getElementById('status');
+      st.classList.toggle('ready', nReg > 0);
+      st.innerHTML = '<span class="sdot"></span>' + (
+        nReg === 0 ? 'Upload at least one Regular TR to begin.'
+          : `${nReg} regular semester(s) and ${Object.keys(sup).length} improvement sheet(s) loaded. Ready to compare.`);
+    }
+
+    /* ---------- log ---------- */
+    function log(msg, cls) {
+      const el = document.getElementById('log');
+      el.classList.add('show');
+      el.innerHTML += `<span class="${cls || ''}">${esc(msg)}</span>\n`;
+      el.scrollTop = el.scrollHeight;
+    }
+
+    /* ---------- run ---------- */
+    document.getElementById('runBtn').addEventListener('click', run);
+    function run() {
+      const el = document.getElementById('log');
+      el.innerHTML = ''; el.classList.add('show');
+      log('Starting comparison…');
+
+      const semInputs = [];
+      for (let s = 1; s <= NSEM; s++) {
+        if (!reg[s]) continue;
+        const rp = parsePick(reg[s]);
+        if (!rp.ok) {
+          log(`Sem-${s}: REGULAR TR could not be read — ${rp.reason}. Pick the correct sheet.`, 'err');
+          semInputs.push({ sem: s, reg: rp, sup: null });
+          continue;
+        }
+        (rp.warnings || []).forEach(w => log(`Sem-${s}: ${w}`, 'warn'));
+
+        let sp = null;
+        if (sup[s]) {
+          sp = parsePick(sup[s]);
+          if (!sp.ok) log(`Sem-${s}: improvement TR could not be read — ${sp.reason}.`, 'err');
+          else (sp.warnings || []).forEach(w => log(`Sem-${s}: ${w}`, 'warn'));
+        }
+
+        /* safety net: improvement records sitting in a sheet the user did not pick */
+        if (sup[s] && sup[s].sheet !== ALL_SHEETS) {
+          const missed = [];
+          for (const n of sup[s].wb.SheetNames) {
+            if (n === sup[s].sheet) continue;
+            const p = Engine.parseSheet(aoaOf(sup[s].wb, n), { sheetName: n });
+            if (!p.ok) continue;
+            p.students.forEach(st => {
+              if (rp.byReg[st.reg] && (!sp || !sp.ok || !sp.byReg[st.reg])) missed.push(`${st.reg} in "${n}"`);
+            });
+          }
+          if (missed.length) {
+            log(`Sem-${s}: ${missed.length} student(s) of this TR have improvement records in OTHER sheets of that file ` +
+              `(${missed.slice(0, 5).join(', ')}${missed.length > 5 ? ', …' : ''}). ` +
+              `Choose "★ All sheets (merge)" in the dropdown to include them.`, 'warn');
+          }
+        }
+
+        log(`Sem-${s}: regular "${rp.sheetName}" → ${rp.students.length} students, ${rp.blocks.length} subjects` +
+          (sp && sp.ok ? ` · improvement "${sp.sheetName}" → ${sp.students.length} students, ${sp.blocks.length} subjects` : ''), 'ok');
+        semInputs.push({ sem: s, reg: rp, sup: sp });
+      }
+
+      if (!semInputs.some(x => x.reg && x.reg.ok)) { log('No usable semester. Aborting.', 'err'); return; }
+
+      RESULT = Engine.compare(semInputs);
+      RESULT.logs.forEach(l => log(l.msg, l.level));
+
+      const elig = RESULT.rows.filter(r => r.eligible).length;
+      const withheld = RESULT.rows.filter(r => r.withheld).length;
+      const review = RESULT.rows.filter(r => r.needsReview.length).length;
+      log(`Done. ${RESULT.rows.length} students · ${elig} eligible for provisional · ` +
+        `${RESULT.rows.length - elig - withheld} not eligible · ${withheld} withheld ("W" in Grace)` +
+        `${review ? ` · ${review} need manual review` : ''}.`, 'ok');
+      if (withheld) {
+        log(`${withheld} student(s) have a "W" in a Grace column — they are EXCLUDED from "Final Result (Provisional)" ` +
+          `and listed in the "Withheld" sheet with the subject(s) concerned.`, 'warn');
+      }
+      if (RESULT.unmatched.length) {
+        log(`${RESULT.unmatched.length} improvement subject(s) could not be matched and were NOT applied — see the messages above and the "Extracted Supplementary TR" sheet.`, 'err');
+      }
+
+      renderSummary();
+      document.getElementById('dlBtn').disabled = false;
+    }
+
+    /* ---------- preview ---------- */
+    function fmt(v) {
+      if (v == null || v === '') return '-';
+      const n = parseFloat(v);
+      return isNaN(n) ? v : Math.round(n * 100) / 100;
+    }
+    function renderSummary() {
+      const { rows, semList } = RESULT;
+      document.getElementById('summary').style.display = 'block';
+      document.getElementById('cTotal').textContent = rows.length;
+      document.getElementById('cPass').textContent = rows.filter(r => r.eligible).length;
+      document.getElementById('cFail').textContent = rows.filter(r => !r.allPass && !r.withheld).length;
+      document.getElementById('cImpr').textContent = rows.filter(r => r.anyImproved).length;
+      const cWith = document.getElementById('cWith');
+      if (cWith) cWith.textContent = rows.filter(r => r.withheld).length;
+      const cRev = document.getElementById('cRev');
+      if (cRev) cRev.textContent = rows.filter(r => r.needsReview.length).length;
+
+      let h = '<tr><th>Reg. No.</th><th>Name</th>';
+      for (const s of semList) h += `<th>Sem-${s} SGPA</th><th>Sem-${s} %</th><th>Sem-${s}</th>`;
+      h += '<th>Provisional</th><th>Reason (if not eligible / withheld)</th></tr>';
+      document.querySelector('#resTable thead').innerHTML = h;
+
+      document.querySelector('#resTable tbody').innerHTML = rows.map(r => {
+        let cells = `<td>${esc(r.reg)}</td><td>${esc(r.name)}</td>`;
+        for (const s of semList) {
+          const sd = r.sems[s];
+          if (!sd) { cells += '<td>-</td><td>-</td><td class="F">—</td>'; continue; }
+          const pf = sd.semPass ? 'P' : 'F';
+          const imp = sd.improved ? '<span class="badge up">↑</span>' : '';
+          const wh = sd.withheld ? '<span class="badge up" title="W in Grace — result withheld">W</span>' : '';
+          cells += `<td>${fmt(sd.sgpa)}</td><td>${fmt(sd.pct)}</td><td class="${pf}">${pf}${imp}${wh}</td>`;
+        }
+        const rev = r.needsReview.length ? '<span class="badge up" title="Needs manual review">!</span>' : '';
+        const cls = r.withheld ? 'W' : (r.allPass ? 'P' : 'F');
+        const label = r.withheld ? 'WITHHELD' : (r.allPass ? 'PASS ALL' : 'NOT ELIGIBLE');
+        cells += `<td><span class="badge ${cls}">${label}</span>${rev}</td>`;
+        const reason = r.withheld
+          ? r.withheldReason + (r.allPass ? '' : ' · also ' + r.failReasons.join(' | '))
+          : (r.allPass ? r.needsReview.join(' | ') : r.failReasons.join(' | '));
+        cells += `<td>${esc(reason)}</td>`;
+        return `<tr>${cells}</tr>`;
+      }).join('');
+    }
+
+    /* ---------- download ---------- */
+    document.getElementById('dlBtn').addEventListener('click', exportWB);
+    async function exportWB() {
+      if (!RESULT) return;
+      const btn = document.getElementById('dlBtn');
+      btn.disabled = true;
+      try {
+        const wb = Exporter.buildWorkbook(ExcelJS, RESULT);
+        const buf = await wb.xlsx.writeBuffer();
+        const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'Provisional_Result_Verified.xlsx';
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1500);
+        log('Workbook downloaded (8 sheets, including "Withheld" and the two extracted-data sheets).', 'ok');
+      } catch (err) {
+        log('Could not build the workbook: ' + err.message, 'err');
+      }
+      btn.disabled = false;
+    }
+
+    /* ---------- reset ---------- */
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      Object.keys(reg).forEach(k => delete reg[k]);
+      Object.keys(sup).forEach(k => delete sup[k]);
+      RESULT = null;
+      document.querySelectorAll('.drop').forEach(b => {
+        b.classList.remove('filled');
+        const fn = b.querySelector('.fname'); if (fn) fn.textContent = '';
+        const inp = b.querySelector('input'); if (inp) inp.value = '';
+      });
+      document.querySelectorAll('.sheetsel').forEach(sw => {
+        sw.classList.remove('show');
+        const sel = sw.querySelector('select'); if (sel) sel.innerHTML = '';
+      });
+      document.getElementById('summary').style.display = 'none';
+      document.getElementById('log').innerHTML = '';
+      document.getElementById('log').classList.remove('show');
+      document.getElementById('dlBtn').disabled = true;
+      refresh();
+    });
+
+    /* ---------- logo doubles as a clear-all button ---------- */
+    (function () {
+      var lg = document.getElementById('logoClear');
+      if (!lg) return;
+      lg.style.cursor = 'pointer';
+      lg.addEventListener('click', function () { document.getElementById('resetBtn').click(); });
+      lg.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); document.getElementById('resetBtn').click(); }
+      });
+    })();
+    /* ===== UI END ===== */
+  </script>
+<!-- shared "Back to portal" / "Log out" control (same as the other tools) -->
+<script src="../../portal-bar.js"></script>
+</body>
+
+</html>

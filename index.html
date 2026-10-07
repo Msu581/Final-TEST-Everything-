@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Verification Suite — Controller of Examinations</title>
+<meta name="description" content="Entry point for the examination verification tools used by the Controller of Examinations office.">
+<meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="light dark">
+
+<!-- Theme is applied before first paint so the page never flashes the wrong mode. -->
+<script>
+(function () {
+  try {
+    var stored = localStorage.getItem("vsuite.theme");
+    /* Light is the default. The system preference is no longer used, so a
+       first visit always opens in light mode; dark is only applied when the
+       user has chosen it before with the toggle. */
+    var theme = (stored === "dark" || stored === "light") ? stored : "light";
+    document.documentElement.setAttribute("data-theme", theme);
+  } catch (e) {
+    document.documentElement.setAttribute("data-theme", "light");
+  }
+})();
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<!-- seasonal background layer (add-on, loads after style.css so it can tint the accent) -->
+<link rel="stylesheet" href="season.css">
+</head>
+<script src="mirage-companion-widget.js" defer></script>
+<body class="is-booting">
+
+<!-- ============================================================
+     BOOT GATE — shown while the session check runs.
+     Neither the login screen nor the portal is rendered until
+     script.js decides which one to show.
+     ============================================================ -->
+<div class="boot" id="boot" role="status" aria-live="polite">
+  <span class="boot__mark" aria-hidden="true"></span>
+  <p class="boot__text">Checking session</p>
+</div>
+
+
+<!-- ============================================================
+     SIGN-IN
+     ============================================================ -->
+<main class="auth" id="login" hidden>
+
+  <section class="auth__brand">
+    <div class="auth__brandInner">
+
+      <div class="auth__top">
+        <div class="brandmark">
+          <img src="assets/logo.png" alt="" class="brandmark__img" data-logo>
+          <span class="brandmark__fallback" data-logo-fallback hidden aria-hidden="true">MSU</span>
+          <span class="brandmark__text">
+            <strong data-org-name>Medhavi Skills University</strong>
+            <span data-org-unit>Controller of Examinations</span>
+          </span>
+        </div>
+
+        <button type="button" class="theme-toggle theme-toggle--onSlab" data-theme-toggle
+                role="switch" aria-checked="false" aria-label="Dark theme" title="Switch to dark theme">
+          <span class="sky" aria-hidden="true">
+            <span class="sky__stars"><i></i><i></i><i></i><i></i><i></i></span>
+            <span class="sky__sun"></span>
+            <span class="sky__moon"></span>
+            <span class="sky__cloud sky__cloud--1"></span>
+            <span class="sky__cloud sky__cloud--2"></span>
+          </span>
+        </button>
+      </div>
+
+      <p class="auth__label">Internal access</p>
+
+      <h1 class="auth__title">Verification <em>Suite</em></h1>
+
+      <p class="auth__lede">
+        A single entry point for the examination office's five gradesheet
+        verification tools. Sign in with the credentials issued to your team.
+      </p>
+
+      <dl class="auth__facts">
+        <div>
+          <dt>Tool 01</dt>
+          <dd>Gradesheet ↔ TR verification</dd>
+        </div>
+        <div>
+          <dt>Tool 02</dt>
+          <dd>White vs original, SGPA, withheld &amp; failed</dd>
+        </div>
+        <div>
+          <dt>Tool 03</dt>
+          <dd>Consolidated marksheet audit</dd>
+        </div>
+        <div>
+          <dt>Tool 04</dt>
+          <dd>Provisional result (regular + improvement)</dd>
+        </div>
+        <div>
+          <dt>Tool 05</dt>
+          <dd>TR / Truscholar semester eligibility</dd>
+        </div>
+      </dl>
+
+      <p class="auth__note">
+        Access is limited to staff of the examination office. Do not share
+        these credentials outside the team.
+      </p>
+    </div>
+  </section>
+
+  <section class="auth__panel">
+    <div class="slip" id="slip">
+      <header class="slip__head">
+        <span class="slip__form">Form COE&nbsp;/ Access</span>
+        <span class="slip__serial" data-serial>—</span>
+      </header>
+
+      <h2 class="slip__title">Sign in</h2>
+      <p class="slip__sub">Enter your staff ID and password to open the suite.</p>
+
+      <form class="form" id="loginForm" novalidate>
+        <div class="field">
+          <label for="userId">Staff ID</label>
+          <input type="text" id="userId" name="userId"
+                 autocomplete="username" autocapitalize="none"
+                 spellcheck="false" required
+                 aria-describedby="formError">
+        </div>
+
+        <div class="field">
+          <label for="password">Password</label>
+          <div class="field__row">
+            <input type="password" id="password" name="password"
+                   autocomplete="current-password" required
+                   aria-describedby="formError">
+            <button type="button" class="reveal-btn" id="togglePassword"
+                    aria-pressed="false" aria-label="Show password">Show</button>
+          </div>
+        </div>
+
+        <label class="check">
+          <input type="checkbox" id="keepSignedIn">
+          <span>Keep me signed in on this device</span>
+        </label>
+
+        <p class="form__error" id="formError" role="alert" hidden></p>
+
+        <button type="submit" class="btn btn--primary btn--block" id="submitBtn">
+          <span class="btn__label">Sign in</span>
+        </button>
+      </form>
+
+      <p class="slip__foot">
+        Trouble signing in? Use the updated ID and password that has been provided.
+      </p>
+
+      <!-- authentication confirmation state (id, class and .is-on hook unchanged) -->
+      <div class="stamp" id="stamp" aria-hidden="true">
+        <div class="stamp__ink">
+          <span class="stamp__sigil" aria-hidden="true">
+            <svg viewBox="0 0 46 46" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="23" cy="23" r="21" stroke="currentColor" stroke-width="1" opacity=".18"/>
+              <circle class="stamp__ring" cx="23" cy="23" r="21" stroke="currentColor" stroke-width="1.25"
+                      stroke-linecap="round" transform="rotate(-90 23 23)"/>
+              <path class="stamp__tick" d="M15 23.4 L20.6 29 L31 18.6" stroke="currentColor"
+                    stroke-width="1.6" stroke-linecap="square" stroke-linejoin="miter"/>
+            </svg>
+          </span>
+          <span class="stamp__word">Authenticated</span>
+          <span class="stamp__line">Verification complete</span>
+          <span class="stamp__meta" data-stamp-time></span>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+
+<!-- ============================================================
+     PORTAL (protected)
+     ============================================================ -->
+<div class="app" id="app" hidden>
+
+  <header class="site-header" id="siteHeader">
+    <div class="wrap site-header__inner">
+      <a class="brandmark brandmark--sm" href="#overview">
+        <img src="assets/logo.png" alt="" class="brandmark__img" data-logo>
+        <span class="brandmark__fallback" data-logo-fallback hidden aria-hidden="true">MSU</span>
+        <span class="brandmark__text">
+          <strong>Verification Suite</strong>
+          <span data-org-unit>Controller of Examinations</span>
+        </span>
+      </a>
+
+      <nav class="nav" id="primaryNav" aria-label="Sections">
+        <a href="#overview" class="nav__link" data-nav>Overview</a>
+        <a href="#tools" class="nav__link" data-nav>Tools</a>
+        <a href="#workflow" class="nav__link" data-nav>How it works</a>
+        <a href="#about" class="nav__link" data-nav>About</a>
+      </nav>
+
+      <button type="button" class="theme-toggle" data-theme-toggle
+              role="switch" aria-checked="false" aria-label="Dark theme" title="Switch to dark theme">
+        <span class="sky" aria-hidden="true">
+          <span class="sky__stars"><i></i><i></i><i></i><i></i><i></i></span>
+          <span class="sky__sun"></span>
+          <span class="sky__moon"></span>
+          <span class="sky__cloud sky__cloud--1"></span>
+          <span class="sky__cloud sky__cloud--2"></span>
+        </span>
+      </button>
+
+      <div class="site-header__user">
+        <span class="userchip" title="Signed in">
+          <span class="userchip__dot" aria-hidden="true"></span>
+          <span data-current-user>—</span>
+        </span>
+        <button type="button" class="btn btn--ghost btn--sm" id="logoutBtn">Sign out</button>
+      </div>
+
+      <button type="button" class="menu-btn" id="menuBtn"
+              aria-expanded="false" aria-controls="mobileNav" aria-label="Open menu">
+        <span aria-hidden="true"></span>
+      </button>
+    </div>
+
+    <div class="mobile-nav" id="mobileNav" hidden>
+      <a href="#overview" class="mobile-nav__link" data-nav>Overview</a>
+      <a href="#tools" class="mobile-nav__link" data-nav>Tools</a>
+      <a href="#workflow" class="mobile-nav__link" data-nav>How it works</a>
+      <a href="#about" class="mobile-nav__link" data-nav>About</a>
+      <div class="mobile-nav__foot">
+        <span class="userchip"><span class="userchip__dot" aria-hidden="true"></span><span data-current-user>—</span></span>
+        <button type="button" class="btn btn--ghost btn--sm" data-logout>Sign out</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- HERO -->
+    <section class="hero" id="overview">
+      <div class="wrap hero__grid">
+        <div class="hero__copy reveal">
+          <p class="eyebrow"><span>01</span> Overview</p>
+          <h1 class="hero__title">
+            <span class="hero__titleLine">Five verification tools for</span>
+            <em>examination records.</em>
+          </h1>
+          <p class="hero__lede">
+            The suite brings together the checks the examination office runs on
+            gradesheets: comparing issued PDFs against the tabulated result,
+            comparing white-background copies against sealed originals,
+            re-deriving the numbers printed on each sheet, auditing the
+            consolidated marksheet, building the provisional result and
+            checking semester eligibility. Each tool runs on its
+            own and produces an Excel report you can download.
+          </p>
+          <div class="hero__actions">
+            <a href="#tools" class="btn btn--primary">Go to the tools <span aria-hidden="true">→</span></a>
+            <a href="#workflow" class="btn btn--quiet">How it works</a>
+          </div>
+
+          <dl class="hero__meta">
+            <div>
+              <dt>Tools</dt>
+              <dd>05</dd>
+            </div>
+            <div>
+              <dt>Output</dt>
+              <dd>Excel report</dd>
+            </div>
+            <div>
+              <dt>Runs</dt>
+              <dd>In your browser</dd>
+            </div>
+          </dl>
+        </div>
+
+        <!-- signature: a specimen comparison record -->
+        <aside class="specimen reveal" aria-label="Illustration of a field-by-field comparison">
+          <div class="specimen__head">
+            <span>Specimen — field comparison</span>
+            <span class="specimen__key" aria-hidden="true">TR · PDF</span>
+          </div>
+
+          <div class="specimen__cols" aria-hidden="true">
+            <span>Field</span>
+            <span>Tabulated result</span>
+            <span>Gradesheet</span>
+            <span></span>
+          </div>
+
+          <ul class="specimen__rows">
+            <li class="ok"><span class="specimen__field">Registration No.</span><span class="specimen__val">23BSC0148</span><span class="specimen__val specimen__val--b">23BSC0148</span><span class="specimen__mark" aria-hidden="true">✓</span></li>
+            <li class="ok"><span class="specimen__field">Credit structure</span><span class="specimen__val">3-0-0</span><span class="specimen__val specimen__val--b">3-0-0</span><span class="specimen__mark" aria-hidden="true">✓</span></li>
+            <li class="bad"><span class="specimen__field">SGPA</span><span class="specimen__val">7.6</span><span class="specimen__val specimen__val--b">7.60</span><span class="specimen__mark" aria-hidden="true">✕</span></li>
+            <li class="ok"><span class="specimen__field">Total credit points</span><span class="specimen__val">218</span><span class="specimen__val specimen__val--b">218</span><span class="specimen__mark" aria-hidden="true">✓</span></li>
+            <li class="bad"><span class="specimen__field">Mother's name</span><span class="specimen__val">Sunita Devi</span><span class="specimen__val specimen__val--b">blank</span><span class="specimen__mark" aria-hidden="true">✕</span></li>
+            <li class="ok"><span class="specimen__field">Course code</span><span class="specimen__val">MTL100 [T]</span><span class="specimen__val specimen__val--b">MTL100 [T]</span><span class="specimen__mark" aria-hidden="true">✓</span></li>
+          </ul>
+
+          <div class="specimen__tally" aria-hidden="true">
+            <span class="specimen__tallyOk">04 matched</span>
+            <span class="specimen__tallyBad">02 flagged</span>
+          </div>
+
+          <p class="specimen__foot">
+            Every difference is written to the report with the field, both values
+            and the kind of difference found.
+          </p>
+        </aside>
+      </div>
+    </section>
+
+    <!-- TOOLS -->
+    <section class="section section--tools" id="tools">
+      <div class="wrap">
+        <header class="section__head reveal">
+          <p class="eyebrow"><span>02</span> Tools</p>
+          <h2 class="section__title">Choose a <em>verification tool</em></h2>
+          <p class="section__lede">
+            The five tools are separate applications. Opening one does not affect
+            the others, and you can come back here to switch at any time.
+          </p>
+        </header>
+
+        <div class="tools">
+
+          <!-- TOOL 01 -->
+          <article class="tool tool--primary reveal">
+            <div class="tool__index" aria-hidden="true">01</div>
+            <div class="tool__body">
+              <p class="tool__kicker">Gradesheet ↔ tabulated result</p>
+              <h3 class="tool__name">Marksheet vs TR Verification</h3>
+              <p class="tool__desc">
+                Loads the TR spreadsheet and a batch of gradesheet PDFs, pairs
+                them on registration number, and reports every field that does
+                not agree — identity block, subject table, credit structure,
+                marks and totals — in one Excel workbook.
+              </p>
+
+              <ul class="tool__badges" aria-hidden="true">
+                <li>TR → PDF</li>
+                <li>Match</li>
+                <li>Course codes</li>
+                <li>Marks</li>
+                <li>Credits</li>
+                <li>Excel report</li>
+              </ul>
+
+              <ul class="tool__list">
+                <li>Reads the TR from a chosen worksheet; TR layout is auto-detected, with a manual override for the three known formats.</li>
+                <li>Handles the transcript identity formats in use, including sheets without an ABC ID row, which are reported as N/A rather than blank.</li>
+                <li>Checks subject rows by course code, falling back to course name, and flags duplicate or mispaired courses.</li>
+                <li>Re-derives maximum marks, total credits, total credit points and the credit structure, then compares them with what the sheet prints.</li>
+                <li>Runs several hundred PDFs in one pass, keeps going in a background tab, and lists any file with no readable text layer.</li>
+              </ul>
+
+              <a class="btn btn--primary tool__cta" data-tool="allInOne" href="#" rel="noopener">
+                Open Marksheet vs TR Verification <span aria-hidden="true">→</span>
+              </a>
+            </div>
+          </article>
+
+          <!-- TOOL 02 -->
+          <article class="tool tool--secondary reveal">
+            <div class="tool__index" aria-hidden="true">02</div>
+            <div class="tool__body">
+              <p class="tool__kicker">Four checks in one toolkit</p>
+              <h3 class="tool__name">White vs Original Verification</h3>
+              <p class="tool__desc">
+                A toolkit built around the white-background versus sealed-original
+                comparison, with three related checks that use the same PDFs and
+                TR. Each check produces its own numbered Excel report.
+              </p>
+
+              <ul class="tool__badges" aria-hidden="true">
+                <li>White ↔ original</li>
+                <li>SGPA</li>
+                <li>Percentage</li>
+                <li>Withheld</li>
+                <li>Failed</li>
+              </ul>
+
+              <ul class="tool__modules">
+                <li>
+                  <span class="tool__moduleName">White vs original</span>
+                  <span class="tool__moduleText">Pairs the two sets on registration number, then compares every identity field, course row, total, summary value and the publication date.</span>
+                </li>
+                <li>
+                  <span class="tool__moduleName">SGPA &amp; percentage</span>
+                  <span class="tool__moduleText">Recomputes percentage and SGPA from each sheet's own rows, along with row credit points, column totals and maximum marks.</span>
+                </li>
+                <li>
+                  <span class="tool__moduleName">Withheld students</span>
+                  <span class="tool__moduleText">Reads the TR and lists students whose grace cell carries a W, exporting every grace cell with its Excel row number.</span>
+                </li>
+                <li>
+                  <span class="tool__moduleName">Failed candidates</span>
+                  <span class="tool__moduleText">Pulls failed candidates from the PDFs, the TR, or both, and cross-checks the two lists to show who was found by only one source.</span>
+                </li>
+              </ul>
+
+              <a class="btn btn--primary tool__cta" data-tool="whiteVsOriginal" href="#" rel="noopener">
+                Open White vs Original <span aria-hidden="true">→</span>
+              </a>
+            </div>
+          </article>
+
+          <!-- TOOL 03 -->
+          <article class="tool tool--secondary tool--wide reveal">
+            <div class="tool__index" aria-hidden="true">03</div>
+            <div class="tool__body">
+              <p class="tool__kicker">Consolidated transcript ↔ exact arithmetic</p>
+              <h3 class="tool__name">Consolidated Marksheet Checker Tool</h3>
+              <p class="tool__desc">
+                Reads each consolidated transcript PDF, recomputes every SGPA,
+                CGPA, credit, mark and percentage from the printed subject rows,
+                and checks each figure against what the transcript claims —
+                with exact fraction arithmetic, so a value either matches or it
+                does not. Results come out as one Excel report.
+              </p>
+
+              <ul class="tool__badges" aria-hidden="true">
+                <li>PDF → recompute</li>
+                <li>SGPA</li>
+                <li>CGPA</li>
+                <li>Credits</li>
+                <li>Percentage</li>
+                <li>Excel report</li>
+              </ul>
+
+              <ul class="tool__list">
+                <li>Reads the two-column semester layout and rotated pages; transcripts with no text layer are listed separately.</li>
+                <li>Checks each semester's credit sum against its printed CREDITS line first, so a mis-read row is surfaced instead of silently accepted.</li>
+                <li>Recomputes SGPA from the subject rows and CGPA using the selected Old or New formula, rounded exactly as the transcript expects.</li>
+                <li>Re-derives each grade from marks, plus total credits, obtained and maximum marks and the percentage, and compares them with the printed values.</li>
+                <li>Checks the programme and specialization against the expected text and the year of passing, with an editable Old / New grade scale.</li>
+              </ul>
+
+              <a class="btn btn--primary tool__cta" data-tool="consolidatedChecker" href="#" rel="noopener">
+                Open Consolidated Marksheet Checker <span aria-hidden="true">→</span>
+              </a>
+            </div>
+          </article>
+
+          <!-- TOOL 04 -->
+          <article class="tool tool--secondary reveal">
+            <div class="tool__index" aria-hidden="true">04</div>
+            <div class="tool__body">
+              <p class="tool__kicker">Regular TR ↔ improvement TR</p>
+              <h3 class="tool__name">Provisional Result Tool</h3>
+              <p class="tool__desc">
+                Loads the Regular TR and, where there was one, the Improvement /
+                Supplementary TR for each semester, keeps the better attempt for
+                every subject, and decides who is eligible for a provisional
+                result. Everything comes out as one 8-sheet Excel workbook.
+              </p>
+
+              <ul class="tool__badges" aria-hidden="true">
+                <li>Regular ↔ improvement</li>
+                <li>Up to 8 semesters</li>
+                <li>Withheld</li>
+                <li>Provisional</li>
+                <li>Excel report</li>
+              </ul>
+
+              <ul class="tool__list">
+                <li>One Regular and one Improvement slot per semester; pick the right sheet from each file, or merge every program sheet.</li>
+                <li>For every subject the higher of the Regular and Improvement totals is kept, and a student passes only if no subject in any semester is still F.</li>
+                <li>A W in any Grace cell — any semester, any subject, either TR — withholds the result, even when the paper is declared P.</li>
+                <li>Lists the Final Result (Provisional), Withheld and Fail — No Provisional students, plus the extracted values with sheet and row numbers.</li>
+              </ul>
+
+              <a class="btn btn--primary tool__cta" data-tool="provisional" href="#" rel="noopener">
+                Open Provisional Result Tool <span aria-hidden="true">→</span>
+              </a>
+            </div>
+          </article>
+
+          <!-- TOOL 05 -->
+          <article class="tool tool--secondary reveal">
+            <div class="tool__index" aria-hidden="true">05</div>
+            <div class="tool__body">
+              <p class="tool__kicker">TR / Truscholar ↔ eligibility</p>
+              <h3 class="tool__name">Tr-Tru Eligibility Checker</h3>
+              <p class="tool__desc">
+                Takes one result file per semester — a Truscholar marksheet or a
+                TR, as .xlsx or .csv — matches students across the semesters and
+                marks each one Eligible or Not Eligible. A student is eligible
+                only when no subject in any semester has the grade F or Fail.
+              </p>
+
+              <ul class="tool__badges" aria-hidden="true">
+                <li>Truscholar</li>
+                <li>TR</li>
+                <li>Up to 8 semesters</li>
+                <li>Eligible</li>
+                <li>Excel report</li>
+              </ul>
+
+              <ul class="tool__list">
+                <li>File type is auto-detected per semester, with a manual Truscholar / TR override.</li>
+                <li>Students are matched by Enrollment No, falling back to hall ticket number and then email.</li>
+                <li>A missing record or a semester with no letter grades makes the student Not Eligible; blank grades are listed as warnings.</li>
+                <li>Report: Summary, Eligible, Not Eligible, one sheet per semester, Warnings and How Decided.</li>
+              </ul>
+
+              <a class="btn btn--primary tool__cta" data-tool="trTruEligible" href="#" rel="noopener">
+                Open Tr-Tru Eligibility Checker <span aria-hidden="true">→</span>
+              </a>
+            </div>
+          </article>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- WORKFLOW -->
+    <section class="section section--workflow" id="workflow">
+      <div class="wrap">
+        <header class="section__head reveal">
+          <p class="eyebrow"><span>03</span> How it works</p>
+          <h2 class="section__title">From sign-in to <em>report</em></h2>
+        </header>
+
+        <ol class="steps">
+          <li class="step reveal">
+            <span class="step__num">01</span>
+            <h3 class="step__title">Sign in</h3>
+            <p>Use the ID issued to the examination office team. Your session stays open in this browser until you sign out or it expires.</p>
+          </li>
+          <li class="step reveal">
+            <span class="step__num">02</span>
+            <h3 class="step__title">Pick the tool</h3>
+            <p>Marksheet vs TR for gradesheets against the tabulated result; White vs Original for copy-to-copy comparison and the SGPA, withheld and failed checks; Consolidated Marksheet Checker to audit the consolidated transcript; Provisional Result to combine regular and improvement TRs; Tr-Tru Eligibility to check that no semester has an F.</p>
+          </li>
+          <li class="step reveal">
+            <span class="step__num">03</span>
+            <h3 class="step__title">Load the files and run</h3>
+            <p>Add the TR workbook and the PDFs inside the tool, choose the format options if auto-detection needs a correction, then run the check.</p>
+          </li>
+          <li class="step reveal">
+            <span class="step__num">04</span>
+            <h3 class="step__title">Download and come back</h3>
+            <p>Save the Excel report, then return to this page whenever you need another tool. The five applications keep their own state.</p>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- ABOUT / NOTICE -->
+    <section class="section section--about" id="about">
+      <div class="wrap about">
+        <div class="about__col reveal">
+          <p class="eyebrow"><span>04</span> About</p>
+          <h2 class="section__title">One door, <em>five independent tools</em></h2>
+          <p>
+            This portal holds no verification logic of its own. It signs you in,
+            explains what each tool does, and links to the five applications,
+            which are maintained as separate projects and can be updated
+            independently of this page.
+          </p>
+          <p>
+            All five tools are built to run in the browser: files are read by the
+            page you open them in, and the reports are generated on your machine.
+            This portal itself never receives a file. If you need this behaviour
+            confirmed for a compliance record, verify it against the source of
+            each application rather than relying on this summary.
+          </p>
+        </div>
+
+        <aside class="notice reveal">
+          <h3 class="notice__title">Handling of documents</h3>
+          <ul class="notice__list">
+            <li>Sign-in here controls access to the portal page only. It does not encrypt or protect the documents you work with.</li>
+            <li>Downloaded reports are ordinary Excel files. Store them where your office normally keeps examination records.</li>
+            <li>Sign out when you are finished on a shared computer, and avoid leaving reports in a shared downloads folder.</li>
+            <li>Report anything that looks wrong in a result to the examination office before acting on it.</li>
+          </ul>
+        </aside>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap site-footer__inner">
+      <div class="brandmark brandmark--sm">
+        <img src="assets/logo.png" alt="" class="brandmark__img" data-logo>
+        <span class="brandmark__fallback" data-logo-fallback hidden aria-hidden="true">MSU</span>
+        <span class="brandmark__text">
+          <strong data-org-name>Medhavi Skills University</strong>
+          <span data-org-unit>Controller of Examinations</span>
+        </span>
+      </div>
+      <p class="site-footer__meta">
+        Internal verification suite · <span data-year>2026</span><br>
+        For use by authorised examination office staff.
+      </p>
+    </div>
+  </footer>
+</div>
+
+<!-- ============================================================
+     SIGN-IN LOADING SCREEN
+     Shown only between a successful sign-in and the portal.
+     Purely presentational: it holds no authentication logic.
+     ============================================================ -->
+<div class="signin-load" id="signinLoad" hidden role="status" aria-live="polite">
+  <div class="signin-load__stage">
+
+    <div class="signin-load__brand">
+      <img src="assets/logo.png" alt="" class="signin-load__logo" data-logo>
+      <span class="brandmark__fallback" data-logo-fallback hidden aria-hidden="true">MSU</span>
+      <span class="signin-load__brandText">
+        <strong>Verification Suite</strong>
+        <span data-org-unit>Controller of Examinations</span>
+      </span>
+    </div>
+
+    <div class="signin-load__scene" id="signinScene">
+
+      <!-- LANDSCAPE — every layer scrolls at its own speed (parallax), driven from
+           script.js. The sun is the only layer that never moves. -->
+      <div class="signin-load__world" aria-hidden="true">
+        <div class="signin-load__sky"></div>
+        <div class="signin-load__sun"></div>
+        <div class="signin-load__layer signin-load__clouds"    data-parallax="0.06" data-tile="720" data-drift="14"></div>
+        <div class="signin-load__layer signin-load__mountains" data-parallax="0.12" data-tile="520"></div>
+        <div class="signin-load__layer signin-load__hills"     data-parallax="0.30" data-tile="420"></div>
+        <div class="signin-load__layer signin-load__treesBack" data-parallax="0.62" data-tile="300"></div>
+        <div class="signin-load__street">
+          <div class="signin-load__layer signin-load__lane"    data-parallax="1"    data-tile="64"></div>
+        </div>
+        <div class="signin-load__layer signin-load__verge"     data-parallax="1.35" data-tile="380"></div>
+      </div>
+
+      <!-- the confirmation that appears in the space the truck leaves behind -->
+      <div class="signin-load__seal" id="signinSeal" aria-hidden="true">
+        <span class="signin-load__sealSigil">
+          <svg viewBox="0 0 46 46" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="23" cy="23" r="21" stroke="currentColor" stroke-width="1" opacity=".18"/>
+            <circle class="signin-load__ring" cx="23" cy="23" r="21" stroke="currentColor" stroke-width="1.25"
+                    stroke-linecap="round" transform="rotate(-90 23 23)"/>
+            <path class="signin-load__tick" d="M15 23.4 L20.6 29 L31 18.6" stroke="currentColor"
+                  stroke-width="1.6" stroke-linecap="square" stroke-linejoin="miter"/>
+          </svg>
+        </span>
+        <span class="signin-load__sealWord">Authenticated</span>
+      </div>
+
+      <div class="signin-load__track" id="signinTrack">
+        <div class="signin-load__truck" id="signinTruck">
+          <span class="signin-load__exhaust" aria-hidden="true"></span>
+
+          <svg viewBox="0 0 120 64" width="90" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <ellipse cx="60" cy="54" rx="52" ry="4" fill="#000" opacity=".18"/>
+            <rect x="10" y="38" width="92" height="6" rx="2" fill="#0B1A2B"/>
+            <rect x="10" y="10" width="56" height="30" rx="3" fill="#F2A354"/>
+            <rect x="10" y="10" width="56" height="30" rx="3" stroke="#B9611C"/>
+            <line x1="24" y1="10" x2="24" y2="40" stroke="#B9611C" opacity=".55"/>
+            <line x1="38" y1="10" x2="38" y2="40" stroke="#B9611C" opacity=".55"/>
+            <line x1="52" y1="10" x2="52" y2="40" stroke="#B9611C" opacity=".55"/>
+            <rect x="10" y="10" width="56" height="4" rx="2" fill="#F7B37A"/>
+            <path d="M66 40V19c0-1.7 1.3-3 3-3h19c1.5 0 2.9.8 3.6 2.1l8.8 15.3c.4.7.6 1.5.6 2.3V40H66Z" fill="#EAF0F6" stroke="#B9C6D3"/>
+            <path d="M71 20h16.5c.6 0 1.2.3 1.5.9l4.8 8.6c.5.9-.2 2-1.2 2H71V20Z" fill="#6FA0C7" stroke="#4E7EA3" stroke-width=".75"/>
+            <line x1="80" y1="20" x2="80" y2="40" stroke="#B9C6D3"/>
+            <rect x="83" y="34" width="4" height="1.6" rx=".8" fill="#9FB2C6"/>
+            <rect x="98.5" y="33" width="3.5" height="4" rx="1" fill="#FBD98C"/>
+            <rect x="9" y="40" width="94" height="3" rx="1.4" fill="#0B1A2B" opacity=".35"/>
+            <path d="M22 44a10 10 0 0 1 20 0Z" fill="#0B1A2B"/>
+            <path d="M74 44a10 10 0 0 1 20 0Z" fill="#0B1A2B"/>
+
+            <!-- REAR WHEEL — tire fixed at 32,46 r=9; only the hub group rotates -->
+            <g id="signinWheelBack" class="signin-load__wheel">
+              <circle cx="32" cy="46" r="9" fill="#16324D"/>
+              <circle cx="32" cy="46" r="9" stroke="#0B1A2B" stroke-width="1.5"/>
+              <g id="signinWheelBackSpin" class="signin-load__wheelSpin">
+                <line x1="32" y1="39.5" x2="32" y2="43" stroke="#DCE4EC" stroke-width="1.5" stroke-linecap="round"/>
+                <line x1="38.5" y1="46" x2="35" y2="46" stroke="#DCE4EC" stroke-width="1.5" stroke-linecap="round"/>
+                <line x1="32" y1="52.5" x2="32" y2="49" stroke="#DCE4EC" stroke-width="1.5" stroke-linecap="round"/>
+                <line x1="25.5" y1="46" x2="29" y2="46" stroke="#DCE4EC" stroke-width="1.5" stroke-linecap="round"/>
+                <circle cx="32" cy="46" r="3.2" fill="#DCE4EC"/>
+                <circle cx="32" cy="46" r="1.2" fill="#16324D"/>
+              </g>
+            </g>
+
+            <!-- FRONT WHEEL — tire fixed at 84,46 r=9; only the hub group rotates -->
+            <g id="signinWheelFront" class="signin-load__wheel">
+              <circle cx="84" cy="46" r="9" fill="#16324D"/>
+              <circle cx="84" cy="46" r="9" stroke="#0B1A2B" stroke-width="1.5"/>
+              <g id="signinWheelFrontSpin" class="signin-load__wheelSpin">
+                <line x1="84" y1="39.5" x2="84" y2="43" stroke="#DCE4EC" stroke-width="1.5" stroke-linecap="round"/>
+                <line x1="90.5" y1="46" x2="87" y2="46" stroke="#DCE4EC" stroke-width="1.5" stroke-linecap="round"/>
+                <line x1="84" y1="52.5" x2="84" y2="49" stroke="#DCE4EC" stroke-width="1.5" stroke-linecap="round"/>
+                <line x1="77.5" y1="46" x2="81" y2="46" stroke="#DCE4EC" stroke-width="1.5" stroke-linecap="round"/>
+                <circle cx="84" cy="46" r="3.2" fill="#DCE4EC"/>
+                <circle cx="84" cy="46" r="1.2" fill="#16324D"/>
+              </g>
+            </g>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- progress bar (was the thin "road" line; id kept for script.js) -->
+    <div class="signin-load__road">
+      <span class="signin-load__roadFill" id="signinRoadFill"></span>
+    </div>
+
+    <p class="signin-load__text" id="signinText">Opening the verification suite</p>
+    <p class="signin-load__sub" id="signinSub">Preparing your session</p>
+    <p class="signin-load__pct" id="signinPct">0%</p>
+
+  </div>
+</div>
+
+<script src="script.js"></script>
+<!-- seasonal background layer (add-on, never touches authentication) -->
+<script src="season.js"></script>
+</body>
+</html>
